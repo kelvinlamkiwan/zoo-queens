@@ -3,17 +3,17 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Meowdoku 貓咪拼圖 — Queens 邏輯謎題</title>
-<meta name="description" content="Meowdoku 貓咪拼圖：N×N 棋盤分成 N 個彩色區域，每區、每行、每列各放一隻貓，且貓與貓不能相鄰（含斜角）。">
+<title>Zoo Queens 動物園皇后 — Queens 邏輯謎題</title>
+<meta name="description" content="Zoo Queens 動物園皇后：N×N 棋盤分成 N 個彩色區域，每區、每行、每列各放一隻動物，且動物與動物不能相鄰（含斜角）。">
 <meta name="robots" content="index, follow">
 <meta property="og:type" content="website">
-<meta property="og:title" content="Meowdoku 貓咪拼圖 — Queens 邏輯謎題">
-<meta property="og:description" content="每區一行一列一隻貓，貓不能相鄰。邏輯拼圖遊戲。">
+<meta property="og:title" content="Zoo Queens 動物園皇后 — Queens 邏輯謎題">
+<meta property="og:description" content="每區一行一列一隻動物，動物不能相鄰。邏輯拼圖遊戲。">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Meowdoku 貓咪拼圖">
-<meta name="twitter:image" content="cat.png">
+<meta name="twitter:title" content="Zoo Queens 動物園皇后">
+<meta name="twitter:image" content="animal.png">
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"VideoGame","name":"Meowdoku 貓咪拼圖","description":"Queens / Star Battle 邏輯謎題：每區每行每列一隻貓，8 方向不能相鄰。","genre":["Puzzle"],"applicationCategory":"Game"}
+{"@context":"https://schema.org","@type":"VideoGame","name":"Zoo Queens 動物園皇后","description":"Queens / Star Battle 邏輯謎題：每區每行每列一隻動物，8 方向不能相鄰。","genre":["Puzzle"],"applicationCategory":"Game"}
 </script>
 <style>
   :root {
@@ -70,15 +70,15 @@
 
   /* ── Board ── */
   .board-wrap { background: var(--card); padding: 8px; border-radius: 18px; box-shadow: 0 12px 34px rgba(169,139,152,.26); }
-  .board { display: grid; width: min(92vw, 456px); aspect-ratio: 1; border-radius: 11px; overflow: hidden; }
+  .board { display: grid; grid-auto-rows: 1fr; width: min(92vw, 456px); aspect-ratio: 1; border-radius: 11px; overflow: hidden; }
   .cell { position: relative; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: filter .12s; }
   .cell:active { filter: brightness(.95); }
-  .cell.catmode-ready:hover { box-shadow: inset 0 0 0 2px rgba(224,145,168,.5); }
+  .cell.animalmode-ready:hover { box-shadow: inset 0 0 0 2px rgba(224,145,168,.5); }
 
-  .cat-img { width: 74%; height: 74%; object-fit: contain; image-rendering: auto; pointer-events: none; filter: drop-shadow(0 2px 2px rgba(0,0,0,.15)); }
-  .cat-img.pop { animation: pop .32s cubic-bezier(.2,1.5,.5,1); }
-  .cat-fallback { font-size: clamp(20px, 5.4vw, 34px); line-height: 1; }
-  .cat-fallback.pop { animation: pop .32s cubic-bezier(.2,1.5,.5,1); }
+  .animal-img { width: 74%; height: 74%; object-fit: contain; image-rendering: auto; pointer-events: none; filter: drop-shadow(0 2px 2px rgba(0,0,0,.15)); }
+  .animal-img.pop { animation: pop .32s cubic-bezier(.2,1.5,.5,1); }
+  .animal-fallback { font-size: clamp(20px, 5.4vw, 34px); line-height: 1; }
+  .animal-fallback.pop { animation: pop .32s cubic-bezier(.2,1.5,.5,1); }
   @keyframes pop { from { transform: scale(.3); } to { transform: scale(1); } }
 
   .lock { position: absolute; right: 2px; bottom: 2px; font-size: 10px; opacity: .9; filter: drop-shadow(0 1px 1px rgba(0,0,0,.2)); pointer-events: none; }
@@ -149,14 +149,14 @@
 </head>
 <body>
   <header>
-    <span class="mascot" id="mascot">🐱</span>
-    <h1>Meowdoku <span class="pink">貓咪拼圖</span></h1>
-    <p class="subtitle">每區、每行、每列各放一隻貓；貓與貓不能相鄰（包括斜角）。點格 = 標 ✕，開「放貓模式」先可以放貓。</p>
+    <span class="mascot" id="mascot">🦁</span>
+    <h1>Zoo Queens <span class="pink">動物園皇后</span></h1>
+    <p class="subtitle">每區、每行、每列各放一隻動物；動物與動物不能相鄰（包括斜角）。點格 = 標 ✕，開「放動物模式」先可以放動物。</p>
   </header>
 
   <div class="hud">
     <span class="chip">🏁 <span class="val" id="level">第 1 關 · 4×4</span></span>
-    <span class="chip">🐱 <span class="val" id="progress">0/4</span></span>
+    <span class="chip">🦁 <span class="val" id="progress">0/4</span></span>
     <span class="hearts" id="hearts"></span>
     <span class="chip">⏱ <span class="val" id="timer">00:00</span></span>
   </div>
@@ -164,16 +164,16 @@
   <div class="board-wrap"><div class="board" id="board"></div></div>
 
   <div class="controls">
-    <button class="btn" id="modeBtn">🐱 放貓模式</button>
+    <button class="btn" id="modeBtn">🦁 放動物模式</button>
     <button class="btn" id="hint">💡 提示</button>
     <button class="btn" id="undo">↩️ 復原</button>
     <button class="btn" id="reset">🔄 重設</button>
     <button class="btn primary" id="next">▶️ 下一關</button>
   </div>
-  <div class="modetext" id="modetext">目前模式：✕ 標記（點格 = 標 ✕，點已放嘅貓 = 移除）</div>
+  <div class="modetext" id="modetext">目前模式：✕ 標記（點格 = 標 ✕，點已放嘅動物 = 移除）</div>
 
   <div class="donate">
-    <div class="d-title">☕ 鍾意 Meowdoku？</div>
+    <div class="d-title">☕ 鍾意 Zoo Queens？</div>
     <div class="d-sub">如果你玩得開心，請我飲杯咖啡支持我繼續開發更多遊戲。</div>
     <div class="donate-btns">
       <a class="donate-btn coffee" href="https://buymeacoffee.com/aidonthurtpoor" target="_blank" rel="noopener">☕ Buy Me a Coffee</a>
@@ -182,7 +182,7 @@
     </div>
   </div>
 
-  <footer>© 2026 Meowdoku · 每日一關 · 免費玩</footer>
+  <footer>© 2026 Zoo Queens · 每日一關 · 免費玩</footer>
 
   <div class="overlay" id="overlay">
     <div class="card" id="overlayCard">
@@ -198,9 +198,9 @@
 <script>
 'use strict';
 /* ════════════════════════════════════════════════════════════════
-   Meowdoku 貓咪拼圖 — Queens / Star Battle 邏輯謎題
-   N×N 棋盤 → N 個彩色區域，每區/每行/每列一隻貓，8 方向不相鄰。
-   自訂貓圖：放 cat.png 喺同 index.html 同一資料夾即自動套用。
+   Zoo Queens 動物園皇后 — Queens / Star Battle 邏輯謎題
+   N×N 棋盤 → N 個彩色區域，每區/每行/每列一隻動物，8 方向不相鄰。
+   自訂動物圖：放 animal.png 喺同 index.html 同一資料夾即自動套用。
    ════════════════════════════════════════════════════════════════ */
 
 // ── Config ──
@@ -211,7 +211,7 @@ const PALETTE = [
 const MAX_ATTEMPTS = 400;
 const NODE_LIMIT = 200000;
 const START_HEARTS = 3;
-const CAT_IMG = 'cat.png';   // 自訂貓圖（可換成 cat.svg 並改呢行）
+const ANIMAL_IMG = 'animal.png';   // 自訂動物圖（可換成 animal.svg 並改呢行）
 
 function nForLevel(level) { return Math.min(4 + (level - 1), 12); }
 function startersFor(N) { return N <= 6 ? 1 : (N <= 9 ? 2 : 3); }
@@ -221,7 +221,7 @@ let level = 1;
 let N = 4;
 let regionOf = [], regionCells = [], solution = [], starters = [];
 let board = [], locked = [];
-let hearts = START_HEARTS, history = [], catMode = false;
+let hearts = START_HEARTS, history = [], animalMode = false;
 let hintCell = null, hintTimer = null;
 let seconds = 0, timerInt = null, started = false;
 
@@ -230,7 +230,7 @@ function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.fl
 function key(r, c) { return r + ',' + c; }
 
 /* ════════════════════════════════════════════════════════════════
-   解法種子 —— 一個合法嘅貓擺位（每行每列一隻、8 方向不相鄰）
+   解法種子 —— 一個合法嘅動物擺位（每行每列一隻、8 方向不相鄰）
    ════════════════════════════════════════════════════════════════ */
 function genPlacement(n) {
   const cols = new Set(); const placed = [];
@@ -428,8 +428,8 @@ function loseHeart() {
   hearts--; renderHearts();
   if (hearts <= 0) gameOver();
 }
-function catCount() { let c = 0; for (let r = 0; r < N; r++) for (let k = 0; k < N; k++) if (board[r][k] === 1) c++; return c; }
-function isWon() { return catCount() === N; }
+function animalCount() { let c = 0; for (let r = 0; r < N; r++) for (let k = 0; k < N; k++) if (board[r][k] === 1) c++; return c; }
+function isWon() { return animalCount() === N; }
 
 /* ── 提示 ── */
 function findLocalForced() {
@@ -481,13 +481,13 @@ function markPop(r, c) { popCell = [r, c]; setTimeout(() => { popCell = null; re
 
 function win() {
   stopTimer();
-  showOverlay('😻', '全部貓貓返咗屋企！', `第 ${level} 關完成，用咗 ${document.getElementById('timer').textContent}。`,
+  showOverlay('🎉', '全部動物返咗屋企！', `第 ${level} 關完成，用咗 ${document.getElementById('timer').textContent}。`,
     [['▶️ 下一關', nextLevel, ''], ['🔄 再玩一次', resetLevel, 'ghost']]);
   celebrate();
 }
 function gameOver() {
   stopTimer();
-  showOverlay('😿', '心用晒喇…', '唔緊要，再試一次！', [['🔄 重試', resetLevel, '']]);
+  showOverlay('💔', '心用晒喇…', '唔緊要，再試一次！', [['🔄 重試', resetLevel, '']]);
 }
 function showOverlay(emoji, title, text, buttons) {
   document.getElementById('ovEmoji').textContent = emoji;
@@ -504,7 +504,7 @@ function showOverlay(emoji, title, text, buttons) {
 function hideOverlay() { document.getElementById('overlay').classList.remove('show'); }
 
 function celebrate() {
-  const emojis = ['🐱','🐈','😻','🐈‍⬛','😹','🐾'];
+  const emojis = ['🦁','🐯','🐘','🦓','🐼','🦊'];
   for (let i = 0; i < 24; i++) {
     const s = document.createElement('span');
     s.className = 'confetti';
@@ -512,7 +512,7 @@ function celebrate() {
     s.style.top = (Math.random() * 40 + 30) + 'vh';
     s.style.animationDelay = (Math.random() * 0.5) + 's';
     if (Math.random() < 0.6) {
-      const img = document.createElement('img'); img.src = CAT_IMG; img.alt = '';
+      const img = document.createElement('img'); img.src = ANIMAL_IMG; img.alt = '';
       img.onerror = () => { s.textContent = emojis[Math.floor(Math.random() * emojis.length)]; };
       s.appendChild(img);
     } else {
@@ -530,17 +530,17 @@ function toast(msg) {
   toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
 }
 
-/* ── 貓圖 element（自訂 image + emoji fallback） ── */
-function catElement(pop) {
+/* ── 動物圖 element（自訂 image + emoji fallback） ── */
+function animalElement(pop) {
   const img = document.createElement('img');
-  img.className = 'cat-img' + (pop ? ' pop' : '');
-  img.src = CAT_IMG;
+  img.className = 'animal-img' + (pop ? ' pop' : '');
+  img.src = ANIMAL_IMG;
   img.alt = '';
   img.draggable = false;
   img.onerror = function () {
     const span = document.createElement('span');
-    span.className = 'cat-fallback' + (pop ? ' pop' : '');
-    span.textContent = '🐱';
+    span.className = 'animal-fallback' + (pop ? ' pop' : '');
+    span.textContent = '🦁';
     this.replaceWith(span);
   };
   return img;
@@ -551,9 +551,10 @@ const boardEl = document.getElementById('board');
 function render() {
   boardEl.innerHTML = '';
   boardEl.style.gridTemplateColumns = `repeat(${N}, 1fr)`;
+  boardEl.style.gridTemplateRows = `repeat(${N}, 1fr)`;
   for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
     const cell = document.createElement('div');
-    cell.className = 'cell' + (catMode ? ' catmode-ready' : '');
+    cell.className = 'cell' + (animalMode ? ' animalmode-ready' : '');
     const reg = regionOf[r][c];
     cell.style.background = PALETTE[reg % PALETTE.length];
     const st = r > 0 && regionOf[r-1][c] === reg;
@@ -568,7 +569,7 @@ function render() {
     cell.style.borderRight = sr ? thin : thick;
 
     if (board[r][c] === 1) {
-      cell.appendChild(catElement(popCell && popCell[0] === r && popCell[1] === c));
+      cell.appendChild(animalElement(popCell && popCell[0] === r && popCell[1] === c));
       if (locked[r][c]) { const lk = document.createElement('span'); lk.className = 'lock'; lk.textContent = '🔒'; cell.appendChild(lk); }
     } else if (board[r][c] === 2) {
       cell.classList.add('x');
@@ -582,7 +583,7 @@ function render() {
   }
   renderHearts();
   document.getElementById('level').textContent = `第 ${level} 關 · ${N}×${N}`;
-  document.getElementById('progress').textContent = `${catCount()}/${N}`;
+  document.getElementById('progress').textContent = `${animalCount()}/${N}`;
 }
 function renderHearts() {
   const h = document.getElementById('hearts'); h.innerHTML = '';
@@ -598,7 +599,7 @@ function renderHearts() {
 function onTap(r, c) {
   if (locked[r][c]) return;
   touch();
-  if (catMode) {
+  if (animalMode) {
     if (board[r][c] === 1) removeCat(r, c);
     else placeCat(r, c);
   } else {
@@ -609,12 +610,12 @@ function onTap(r, c) {
 
 /* ── 按鈕 ── */
 document.getElementById('modeBtn').addEventListener('click', function () {
-  catMode = !catMode;
-  this.classList.toggle('mode-on', catMode);
-  this.textContent = catMode ? '✕ 標記模式' : '🐱 放貓模式';
-  document.getElementById('modetext').textContent = catMode
-    ? '目前模式：🐱 放貓（點格 = 放貓，點已放嘅貓 = 移除）'
-    : '目前模式：✕ 標記（點格 = 標 ✕，點已放嘅貓 = 移除）';
+  animalMode = !animalMode;
+  this.classList.toggle('mode-on', animalMode);
+  this.textContent = animalMode ? '✕ 標記模式' : '🦁 放動物模式';
+  document.getElementById('modetext').textContent = animalMode
+    ? '目前模式：🦁 放動物（點格 = 放動物，點已放嘅動物 = 移除）'
+    : '目前模式：✕ 標記（點格 = 標 ✕，點已放嘅動物 = 移除）';
   render();
 });
 document.getElementById('hint').addEventListener('click', hint);
@@ -623,7 +624,7 @@ document.getElementById('reset').addEventListener('click', resetLevel);
 document.getElementById('next').addEventListener('click', nextLevel);
 
 /* ── 測試 API（headless） ── */
-globalThis.__meowdoku = {
+globalThis.__zooqueens = {
   genPlacement, generateRegions, findSolutions, generateLevel, loadLevel, newGame, nextLevel,
   placeCat, removeCat, toggleX, isValidPlacement, isWon, hint, undo,
   regionOf: () => regionOf.map(r => r.slice()),
