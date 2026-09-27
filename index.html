@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Meowdoku 貓咪拼圖 — Queens 邏輯謎題</title>
+<meta name="description" content="Meowdoku 貓咪拼圖：N×N 棋盤分成 N 個彩色區域，每區、每行、每列各放一隻貓，且貓與貓不能相鄰（含斜角）。">
+<meta name="robots" content="index, follow">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Meowdoku 貓咪拼圖 — Queens 邏輯謎題">
+<meta property="og:description" content="每區一行一列一隻貓，貓不能相鄰。邏輯拼圖遊戲。">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Meowdoku 貓咪拼圖">
+<meta name="twitter:image" content="cat.png">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"VideoGame","name":"Meowdoku 貓咪拼圖","description":"Queens / Star Battle 邏輯謎題：每區每行每列一隻貓，8 方向不能相鄰。","genre":["Puzzle"],"applicationCategory":"Game"}
+</script>
+<style>
+  :root {
+    --page1: #fdf6f0;
+    --page2: #f6ecf4;
+    --card: #ffffff;
+    --text: #4a3f46;
+    --muted: #a2939a;
+    --region-border: #b0939e;
+    --accent: #e091a8;
+    --accent-dark: #d17a94;
+    --wrong: #e05d6b;
+    --gold: #e8b04c;
+    --coffee: #ffdd00;
+    --payme: #1e5eff;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { min-height: 100%; }
+  body {
+    font-family: -apple-system, 'PingFang TC', 'Noto Sans TC', 'Segoe UI', sans-serif;
+    background: linear-gradient(160deg, var(--page1), var(--page2));
+    color: var(--text);
+    min-height: 100vh;
+    display: flex; flex-direction: column; align-items: center;
+    padding: 16px 12px 28px;
+    user-select: none;
+    overflow-x: hidden;
+  }
+
+  /* ── Header ── */
+  header { text-align: center; margin-bottom: 4px; }
+  .mascot { font-size: 34px; display: block; animation: bob 3s ease-in-out infinite; }
+  @keyframes bob { 0%,100%{ transform: translateY(0); } 50% { transform: translateY(-5px); } }
+  h1 { font-size: 25px; font-weight: 800; letter-spacing: .5px; }
+  h1 .pink { color: var(--accent-dark); }
+  .subtitle { color: var(--muted); font-size: 12.5px; margin: 4px auto 0; max-width: 400px; line-height: 1.55; }
+
+  /* ── HUD ── */
+  .hud {
+    display: flex; align-items: center; gap: 12px; margin: 12px 0;
+    flex-wrap: wrap; justify-content: center;
+  }
+  .chip {
+    background: rgba(255,255,255,.85); border-radius: 999px; padding: 7px 14px;
+    font-size: 13px; font-weight: 700; display: flex; align-items: center; gap: 6px;
+    box-shadow: 0 2px 8px rgba(169,139,152,.16); white-space: nowrap;
+  }
+  .chip .val { color: var(--accent-dark); font-variant-numeric: tabular-nums; }
+  .hearts { font-size: 15px; letter-spacing: 1px; }
+  .hearts span { opacity: .22; transition: opacity .2s, transform .2s; display: inline-block; }
+  .hearts span.on { opacity: 1; }
+  .hearts span.lost { animation: heartBreak .4s; }
+  @keyframes heartBreak { 50% { transform: scale(1.5); } }
+
+  /* ── Board ── */
+  .board-wrap { background: var(--card); padding: 8px; border-radius: 18px; box-shadow: 0 12px 34px rgba(169,139,152,.26); }
+  .board { display: grid; width: min(92vw, 456px); aspect-ratio: 1; border-radius: 11px; overflow: hidden; }
+  .cell { position: relative; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: filter .12s; }
+  .cell:active { filter: brightness(.95); }
+  .cell.catmode-ready:hover { box-shadow: inset 0 0 0 2px rgba(224,145,168,.5); }
+
+  .cat-img { width: 74%; height: 74%; object-fit: contain; image-rendering: auto; pointer-events: none; filter: drop-shadow(0 2px 2px rgba(0,0,0,.15)); }
+  .cat-img.pop { animation: pop .32s cubic-bezier(.2,1.5,.5,1); }
+  .cat-fallback { font-size: clamp(20px, 5.4vw, 34px); line-height: 1; }
+  .cat-fallback.pop { animation: pop .32s cubic-bezier(.2,1.5,.5,1); }
+  @keyframes pop { from { transform: scale(.3); } to { transform: scale(1); } }
+
+  .lock { position: absolute; right: 2px; bottom: 2px; font-size: 10px; opacity: .9; filter: drop-shadow(0 1px 1px rgba(0,0,0,.2)); pointer-events: none; }
+
+  .cell.x::after { content: ''; position: absolute; inset: 0; background: rgba(255,255,255,.58); }
+  .cell.x .mark { position: relative; z-index: 1; font-size: clamp(15px, 4.2vw, 25px); font-weight: 700; color: #b7aab0; }
+
+  .cell.shake { animation: shake .4s; background: var(--wrong) !important; }
+  @keyframes shake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-6px)} 40%{transform:translateX(6px)} 60%{transform:translateX(-4px)} 80%{transform:translateX(4px)} }
+
+  .cell.hint-pulse { animation: hintPulse 1s ease infinite; z-index: 1; }
+  @keyframes hintPulse { 0%,100%{ box-shadow: inset 0 0 0 3px var(--gold); } 50% { box-shadow: inset 0 0 0 3px transparent; } }
+
+  /* ── Controls ── */
+  .controls { display: flex; gap: 8px; margin-top: 15px; flex-wrap: wrap; justify-content: center; }
+  .btn {
+    border: none; border-radius: 13px; padding: 11px 16px; font-size: 14px; font-weight: 700;
+    cursor: pointer; transition: all .15s; background: #fff; color: var(--text);
+    box-shadow: 0 2px 8px rgba(0,0,0,.06); display: flex; align-items: center; gap: 6px;
+  }
+  .btn:active { transform: scale(.95); }
+  .btn.primary { background: linear-gradient(135deg, var(--accent), var(--accent-dark)); color: #fff; box-shadow: 0 4px 14px rgba(209,122,148,.35); }
+  .btn.mode-on { background: var(--accent); color: #fff; box-shadow: 0 2px 10px rgba(224,145,168,.45); }
+  .modetext { font-size: 12px; color: var(--muted); margin-top: 10px; text-align: center; }
+
+  /* ── Donate ── */
+  .donate {
+    margin-top: 24px; text-align: center; background: #fff; border-radius: 18px;
+    padding: 18px 20px; width: min(92vw, 456px); box-shadow: 0 8px 24px rgba(169,139,152,.18);
+  }
+  .donate .d-title { font-size: 15px; font-weight: 800; margin-bottom: 4px; }
+  .donate .d-sub { color: var(--muted); font-size: 12.5px; margin-bottom: 13px; line-height: 1.5; }
+  .donate-btns { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+  .donate-btn {
+    text-decoration: none; font-size: 13px; font-weight: 700; padding: 10px 16px;
+    border-radius: 12px; display: inline-flex; align-items: center; gap: 6px; transition: transform .12s;
+  }
+  .donate-btn:active { transform: scale(.95); }
+  .donate-btn.coffee { background: var(--coffee); color: #4a3f00; }
+  .donate-btn.payme { background: var(--payme); color: #fff; }
+  .donate-btn.fps { background: #fff; color: #2b3440; border: 1.5px solid #2b3440; }
+
+  footer { margin-top: 14px; color: var(--muted); font-size: 11px; text-align: center; }
+
+  /* ── Overlays ── */
+  .overlay { position: fixed; inset: 0; background: rgba(74,63,70,.55); display: none; align-items: center; justify-content: center; z-index: 50; padding: 20px; backdrop-filter: blur(2px); }
+  .overlay.show { display: flex; }
+  .card {
+    background: #fff; border-radius: 22px; padding: 30px 28px; text-align: center;
+    max-width: 350px; width: 100%; box-shadow: 0 16px 50px rgba(0,0,0,.28);
+    animation: popIn .38s cubic-bezier(.2,1.4,.4,1);
+  }
+  @keyframes popIn { from { transform: scale(.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .card .emoji { font-size: 50px; margin-bottom: 8px; }
+  .card h2 { font-size: 22px; margin-bottom: 5px; }
+  .card p { color: var(--muted); font-size: 14px; margin-bottom: 18px; line-height: 1.55; }
+  .card .btn-row { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+  .card button { border: none; border-radius: 13px; padding: 12px 24px; font-size: 15px; font-weight: 800; cursor: pointer; background: linear-gradient(135deg, var(--accent), var(--accent-dark)); color: #fff; box-shadow: 0 4px 14px rgba(209,122,148,.35); }
+  .card button.ghost { background: #fff; color: var(--text); box-shadow: 0 2px 8px rgba(0,0,0,.08); }
+
+  .confetti { position: fixed; font-size: 26px; animation: floatUp 1.9s ease-out forwards; pointer-events: none; z-index: 60; }
+  .confetti img { width: 34px; height: 34px; object-fit: contain; }
+  @keyframes floatUp { 0% { transform: translateY(0) rotate(0); opacity: 1; } 100% { transform: translateY(-58vh) rotate(340deg); opacity: 0; } }
+
+  .toast { position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%); background: rgba(74,63,70,.92); color: #fff; padding: 11px 20px; border-radius: 13px; font-size: 13px; opacity: 0; transition: opacity .25s; pointer-events: none; z-index: 70; }
+  .toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+  <header>
+    <span class="mascot" id="mascot">🐱</span>
+    <h1>Meowdoku <span class="pink">貓咪拼圖</span></h1>
+    <p class="subtitle">每區、每行、每列各放一隻貓；貓與貓不能相鄰（包括斜角）。點格 = 標 ✕，開「放貓模式」先可以放貓。</p>
+  </header>
+
+  <div class="hud">
+    <span class="chip">🏁 <span class="val" id="level">第 1 關 · 4×4</span></span>
+    <span class="chip">🐱 <span class="val" id="progress">0/4</span></span>
+    <span class="hearts" id="hearts"></span>
+    <span class="chip">⏱ <span class="val" id="timer">00:00</span></span>
+  </div>
+
+  <div class="board-wrap"><div class="board" id="board"></div></div>
+
+  <div class="controls">
+    <button class="btn" id="modeBtn">🐱 放貓模式</button>
+    <button class="btn" id="hint">💡 提示</button>
+    <button class="btn" id="undo">↩️ 復原</button>
+    <button class="btn" id="reset">🔄 重設</button>
+    <button class="btn primary" id="next">▶️ 下一關</button>
+  </div>
+  <div class="modetext" id="modetext">目前模式：✕ 標記（點格 = 標 ✕，點已放嘅貓 = 移除）</div>
+
+  <div class="donate">
+    <div class="d-title">☕ 鍾意 Meowdoku？</div>
+    <div class="d-sub">如果你玩得開心，請我飲杯咖啡支持我繼續開發更多遊戲。</div>
+    <div class="donate-btns">
+      <a class="donate-btn coffee" href="https://buymeacoffee.com/aidonthurtpoor" target="_blank" rel="noopener">☕ Buy Me a Coffee</a>
+      <a class="donate-btn payme" href="#" target="_blank" rel="noopener">PayMe</a>
+      <a class="donate-btn fps" href="#" target="_blank" rel="noopener">轉數快 FPS</a>
+    </div>
+  </div>
+
+  <footer>© 2026 Meowdoku · 每日一關 · 免費玩</footer>
+
+  <div class="overlay" id="overlay">
+    <div class="card" id="overlayCard">
+      <div class="emoji" id="ovEmoji">🎉</div>
+      <h2 id="ovTitle">恭喜！</h2>
+      <p id="ovText"></p>
+      <div class="btn-row" id="ovButtons"></div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+<script>
+'use strict';
+/* ════════════════════════════════════════════════════════════════
+   Meowdoku 貓咪拼圖 — Queens / Star Battle 邏輯謎題
+   N×N 棋盤 → N 個彩色區域，每區/每行/每列一隻貓，8 方向不相鄰。
+   自訂貓圖：放 cat.png 喺同 index.html 同一資料夾即自動套用。
+   ════════════════════════════════════════════════════════════════ */
+
+// ── Config ──
+const PALETTE = [
+  '#f7c8d8','#f7dcc8','#f7ecc8','#cfe8cf','#c8e0f0','#dcd0f0',
+  '#f0c8d0','#d0e8e0','#f0e0c8','#c8d8f0','#e8c8e8','#e0f0c8',
+];
+const MAX_ATTEMPTS = 400;
+const NODE_LIMIT = 200000;
+const START_HEARTS = 3;
+const CAT_IMG = 'cat.png';   // 自訂貓圖（可換成 cat.svg 並改呢行）
+
+function nForLevel(level) { return Math.min(4 + (level - 1), 12); }
+function startersFor(N) { return N <= 6 ? 1 : (N <= 9 ? 2 : 3); }
+
+// ── State ──
+let level = 1;
+let N = 4;
+let regionOf = [], regionCells = [], solution = [], starters = [];
+let board = [], locked = [];
+let hearts = START_HEARTS, history = [], catMode = false;
+let hintCell = null, hintTimer = null;
+let seconds = 0, timerInt = null, started = false;
+
+// ── 工具 ──
+function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+function key(r, c) { return r + ',' + c; }
+
+/* ════════════════════════════════════════════════════════════════
+   解法種子 —— 一個合法嘅貓擺位（每行每列一隻、8 方向不相鄰）
+   ════════════════════════════════════════════════════════════════ */
+function genPlacement(n) {
+  const cols = new Set(); const placed = [];
+  function bt(row) {
+    if (row === n) return true;
+    for (let c = 0; c < n; c++) {
+      if (cols.has(c)) continue;
+      let ok = true;
+      for (const [pr, pc] of placed) if (Math.abs(pr - row) <= 1 && Math.abs(pc - c) <= 1) { ok = false; break; }
+      if (!ok) continue;
+      cols.add(c); placed.push([row, c]);
+      if (bt(row + 1)) return true;
+      cols.delete(c); placed.pop();
+    }
+    return false;
+  }
+  return bt(0) ? placed : null;
+}
+
+/* ════════════════════════════════════════════════════════════════
+   區域生成 —— 由解法種子長出（保證連通 + 全覆蓋 + 解有效）。
+   揀「最大」相鄰區域（80%）→ 造出不均勻區域 → 逼出唯一解。
+   ════════════════════════════════════════════════════════════════ */
+function generateRegions(n, seeds) {
+  const ro = Array.from({ length: n }, () => Array(n).fill(-1));
+  const sizes = Array(n).fill(0);
+  for (let i = 0; i < n; i++) { const [r, c] = seeds[i]; ro[r][c] = i; sizes[i] = 1; }
+
+  let filled = n;
+  while (filled < n * n) {
+    const boundary = [];
+    for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) {
+      if (ro[r][c] !== -1) continue;
+      const adj = new Set();
+      if (r > 0 && ro[r-1][c] >= 0) adj.add(ro[r-1][c]);
+      if (r < n-1 && ro[r+1][c] >= 0) adj.add(ro[r+1][c]);
+      if (c > 0 && ro[r][c-1] >= 0) adj.add(ro[r][c-1]);
+      if (c < n-1 && ro[r][c+1] >= 0) adj.add(ro[r][c+1]);
+      if (adj.size) boundary.push({ r, c, adj: [...adj] });
+    }
+    if (!boundary.length) break;
+    const b = boundary[Math.floor(Math.random() * boundary.length)];
+    let pick;
+    if (Math.random() < 0.8) { pick = b.adj[0]; for (const a of b.adj) if (sizes[a] > sizes[pick]) pick = a; }
+    else pick = b.adj[Math.floor(Math.random() * b.adj.length)];
+    ro[b.r][b.c] = pick; sizes[pick]++;
+    filled++;
+  }
+
+  const cells = Array.from({ length: n }, () => []);
+  for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) cells[ro[r][c]].push([r, c]);
+  return { regionOf: ro, regionCells: cells };
+}
+
+/* ════════════════════════════════════════════════════════════════
+   求解器 —— 回溯 + MRV + 前向檢查
+   ════════════════════════════════════════════════════════════════ */
+function findSolutions(n, ro, cells, fixedSet, forbiddenSet, maxSols, nodeLimit) {
+  const solutions = []; let nodes = 0, aborted = false;
+  const occ = Array.from({ length: n }, () => Array(n).fill(false));
+  const usedRows = new Set(), usedCols = new Set();
+  const regionHas = Array(n).fill(false);
+  for (const [r, c] of fixedSet) { occ[r][c] = true; usedRows.add(r); usedCols.add(c); regionHas[ro[r][c]] = true; }
+  const remaining = [];
+  for (let i = 0; i < n; i++) if (!regionHas[i]) remaining.push(i);
+
+  function adj(r, c) {
+    for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) {
+      if (!dr && !dc) continue;
+      const nr = r + dr, nc = c + dc;
+      if (nr >= 0 && nr < n && nc >= 0 && nc < n && occ[nr][nc]) return true;
+    }
+    return false;
+  }
+  function cands(reg) {
+    const out = [];
+    for (const [r, c] of cells[reg]) {
+      if (forbiddenSet.has(key(r, c))) continue;
+      if (occ[r][c]) continue;
+      if (usedRows.has(r) || usedCols.has(c)) continue;
+      if (adj(r, c)) continue;
+      out.push([r, c]);
+    }
+    return out;
+  }
+
+  function bt(rem) {
+    if (solutions.length >= maxSols || aborted) return;
+    if (++nodes > nodeLimit) { aborted = true; return; }
+    if (rem.length === 0) {
+      const sol = [];
+      for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) if (occ[r][c]) sol.push([r, c]);
+      solutions.push(sol); return;
+    }
+    let best = -1, bestCands = null;
+    for (const reg of rem) {
+      const cs = cands(reg);
+      if (!cs.length) return;
+      if (bestCands === null || cs.length < bestCands.length) { best = reg; bestCands = cs; }
+    }
+    const rest = rem.filter(x => x !== best);
+    for (const [r, c] of bestCands) {
+      occ[r][c] = true; usedRows.add(r); usedCols.add(c);
+      bt(rest);
+      occ[r][c] = false; usedRows.delete(r); usedCols.delete(c);
+      if (solutions.length >= maxSols || aborted) return;
+    }
+  }
+  bt(remaining);
+  return { solutions, aborted };
+}
+
+/* ════════════════════════════════════════════════════════════════
+   關卡生成 —— 唯一解保證
+   ════════════════════════════════════════════════════════════════ */
+function generateLevel(n, starterCount) {
+  for (let a = 0; a < MAX_ATTEMPTS; a++) {
+    const sol = genPlacement(n);
+    if (!sol) continue;
+    const { regionOf: ro, regionCells: cells } = generateRegions(n, sol);
+    const r1 = findSolutions(n, ro, cells, [], new Set(), 2, NODE_LIMIT);
+    if (r1.aborted || r1.solutions.length !== 1) continue;
+    const st = shuffle(sol.slice()).slice(0, starterCount);
+    const r2 = findSolutions(n, ro, cells, st, new Set(), 2, NODE_LIMIT);
+    if (r2.aborted || r2.solutions.length !== 1) continue;
+    return { regionOf: ro, regionCells: cells, solution: sol, starters: st };
+  }
+  return null;
+}
+
+/* ════════════════════════════════════════════════════════════════
+   遊戲流程
+   ════════════════════════════════════════════════════════════════ */
+function loadLevel(lv) {
+  level = lv;
+  N = nForLevel(level);
+  const g = generateLevel(N, startersFor(N));
+  if (!g) { toast('生成失敗，重試中…'); loadLevel(lv); return; }
+  regionOf = g.regionOf; regionCells = g.regionCells; solution = g.solution; starters = g.starters;
+  board = Array.from({ length: N }, () => Array(N).fill(0));
+  locked = Array.from({ length: N }, () => Array(N).fill(false));
+  for (const [r, c] of starters) { board[r][c] = 1; locked[r][c] = true; }
+  hearts = START_HEARTS; history = []; hintCell = null; started = false; seconds = 0;
+  stopTimer();
+  document.getElementById('timer').textContent = '00:00';
+  hideOverlay(); render();
+}
+function newGame() { loadLevel(1); }
+function nextLevel() { loadLevel(level + 1); }
+function resetLevel() { loadLevel(level); }
+
+function touch() { if (!started) { started = true; startTimer(); } }
+function startTimer() { if (timerInt) return; timerInt = setInterval(() => { seconds++; const m = String(Math.floor(seconds/60)).padStart(2,'0'); const s = String(seconds%60).padStart(2,'0'); document.getElementById('timer').textContent = `${m}:${s}`; }, 1000); }
+function stopTimer() { if (timerInt) { clearInterval(timerInt); timerInt = null; } }
+
+function pushHistory() { history.push(board.map(r => r.slice())); if (history.length > 500) history.shift(); }
+function undo() { if (!history.length) return; board = history.pop(); render(); }
+
+/* ── 驗證 / 放置 ── */
+function rowHasCat(r) { for (let c = 0; c < N; c++) if (board[r][c] === 1) return true; return false; }
+function colHasCat(c) { for (let r = 0; r < N; r++) if (board[r][c] === 1) return true; return false; }
+function regionHasCat(r, c) { const reg = regionOf[r][c]; for (const [rr, cc] of regionCells[reg]) if (board[rr][cc] === 1) return true; return false; }
+function adjacentToCat(r, c) {
+  for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) {
+    if (!dr && !dc) continue;
+    const nr = r + dr, nc = c + dc;
+    if (nr >= 0 && nr < N && nc >= 0 && nc < N && board[nr][nc] === 1) return true;
+  }
+  return false;
+}
+function isValidPlacement(r, c) {
+  return !(rowHasCat(r) || colHasCat(c) || regionHasCat(r, c) || adjacentToCat(r, c));
+}
+
+function placeCat(r, c) {
+  if (board[r][c] === 1) return;
+  if (!isValidPlacement(r, c)) { shakeCell(r, c); loseHeart(); return; }
+  pushHistory();
+  board[r][c] = 1;
+  markPop(r, c);
+  render();
+  if (isWon()) win();
+}
+function removeCat(r, c) {
+  if (board[r][c] !== 1 || locked[r][c]) return;
+  pushHistory(); board[r][c] = 0; render();
+}
+function toggleX(r, c) {
+  pushHistory();
+  board[r][c] = board[r][c] === 2 ? 0 : 2;
+  render();
+}
+
+function loseHeart() {
+  hearts--; renderHearts();
+  if (hearts <= 0) gameOver();
+}
+function catCount() { let c = 0; for (let r = 0; r < N; r++) for (let k = 0; k < N; k++) if (board[r][k] === 1) c++; return c; }
+function isWon() { return catCount() === N; }
+
+/* ── 提示 ── */
+function findLocalForced() {
+  const cands = [];
+  for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
+    if (board[r][c] !== 0 || locked[r][c]) continue;
+    if (rowHasCat(r) || colHasCat(c) || regionHasCat(r, c) || adjacentToCat(r, c)) continue;
+    cands.push([r, c]);
+  }
+  for (const [r, c] of cands) {
+    const rowN = cands.filter(x => x[0] === r).length;
+    const colN = cands.filter(x => x[1] === c).length;
+    const reg = regionOf[r][c];
+    const regN = cands.filter(x => regionOf[x[0]][x[1]] === reg).length;
+    if (rowN === 1 || colN === 1 || regN === 1) return [r, c];
+  }
+  return null;
+}
+function hint() {
+  touch();
+  let target = findLocalForced();
+  if (!target) {
+    const fixed = [], forbidden = new Set();
+    for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
+      if (board[r][c] === 1) fixed.push([r, c]);
+      else if (board[r][c] === 2) forbidden.add(key(r, c));
+    }
+    const r = findSolutions(N, regionOf, regionCells, fixed, forbidden, 2, NODE_LIMIT);
+    if (!r.aborted && r.solutions.length === 1) {
+      const comp = r.solutions[0];
+      let best = null, bestScore = Infinity;
+      for (const [rr, cc] of comp) {
+        if (board[rr][cc] !== 0) continue;
+        const empties = regionCells[regionOf[rr][cc]].filter(([x, y]) => board[x][y] === 0).length;
+        if (empties < bestScore) { bestScore = empties; best = [rr, cc]; }
+      }
+      target = best;
+    }
+  }
+  if (target) flashHint(target);
+  else toast('暫時搵唔到提示，可能標記有誤');
+}
+function flashHint(cell) { hintCell = cell; render(); clearTimeout(hintTimer); hintTimer = setTimeout(() => { hintCell = null; render(); }, 2500); }
+
+/* ── 動畫 / UI ── */
+let shakeCellPos = null, popCell = null;
+function shakeCell(r, c) { shakeCellPos = [r, c]; render(); setTimeout(() => { shakeCellPos = null; render(); }, 400); }
+function markPop(r, c) { popCell = [r, c]; setTimeout(() => { popCell = null; render(); }, 320); }
+
+function win() {
+  stopTimer();
+  showOverlay('😻', '全部貓貓返咗屋企！', `第 ${level} 關完成，用咗 ${document.getElementById('timer').textContent}。`,
+    [['▶️ 下一關', nextLevel, ''], ['🔄 再玩一次', resetLevel, 'ghost']]);
+  celebrate();
+}
+function gameOver() {
+  stopTimer();
+  showOverlay('😿', '心用晒喇…', '唔緊要，再試一次！', [['🔄 重試', resetLevel, '']]);
+}
+function showOverlay(emoji, title, text, buttons) {
+  document.getElementById('ovEmoji').textContent = emoji;
+  document.getElementById('ovTitle').textContent = title;
+  document.getElementById('ovText').textContent = text;
+  const box = document.getElementById('ovButtons'); box.innerHTML = '';
+  for (const [label, fn, extra] of buttons) {
+    const b = document.createElement('button'); b.textContent = label;
+    if (extra) b.className = extra;
+    b.addEventListener('click', fn); box.appendChild(b);
+  }
+  document.getElementById('overlay').classList.add('show');
+}
+function hideOverlay() { document.getElementById('overlay').classList.remove('show'); }
+
+function celebrate() {
+  const emojis = ['🐱','🐈','😻','🐈‍⬛','😹','🐾'];
+  for (let i = 0; i < 24; i++) {
+    const s = document.createElement('span');
+    s.className = 'confetti';
+    s.style.left = (Math.random() * 90 + 5) + 'vw';
+    s.style.top = (Math.random() * 40 + 30) + 'vh';
+    s.style.animationDelay = (Math.random() * 0.5) + 's';
+    if (Math.random() < 0.6) {
+      const img = document.createElement('img'); img.src = CAT_IMG; img.alt = '';
+      img.onerror = () => { s.textContent = emojis[Math.floor(Math.random() * emojis.length)]; };
+      s.appendChild(img);
+    } else {
+      s.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+    }
+    document.body.appendChild(s);
+    setTimeout(() => s.remove(), 2400);
+  }
+}
+let toastTimer = null;
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+/* ── 貓圖 element（自訂 image + emoji fallback） ── */
+function catElement(pop) {
+  const img = document.createElement('img');
+  img.className = 'cat-img' + (pop ? ' pop' : '');
+  img.src = CAT_IMG;
+  img.alt = '';
+  img.draggable = false;
+  img.onerror = function () {
+    const span = document.createElement('span');
+    span.className = 'cat-fallback' + (pop ? ' pop' : '');
+    span.textContent = '🐱';
+    this.replaceWith(span);
+  };
+  return img;
+}
+
+/* ── 渲染 ── */
+const boardEl = document.getElementById('board');
+function render() {
+  boardEl.innerHTML = '';
+  boardEl.style.gridTemplateColumns = `repeat(${N}, 1fr)`;
+  for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
+    const cell = document.createElement('div');
+    cell.className = 'cell' + (catMode ? ' catmode-ready' : '');
+    const reg = regionOf[r][c];
+    cell.style.background = PALETTE[reg % PALETTE.length];
+    const st = r > 0 && regionOf[r-1][c] === reg;
+    const sb = r < N-1 && regionOf[r+1][c] === reg;
+    const sl = c > 0 && regionOf[r][c-1] === reg;
+    const sr = c < N-1 && regionOf[r][c+1] === reg;
+    const thin = '1px solid rgba(255,255,255,.45)';
+    const thick = '2px solid var(--region-border)';
+    cell.style.borderTop = st ? thin : thick;
+    cell.style.borderBottom = sb ? thin : thick;
+    cell.style.borderLeft = sl ? thin : thick;
+    cell.style.borderRight = sr ? thin : thick;
+
+    if (board[r][c] === 1) {
+      cell.appendChild(catElement(popCell && popCell[0] === r && popCell[1] === c));
+      if (locked[r][c]) { const lk = document.createElement('span'); lk.className = 'lock'; lk.textContent = '🔒'; cell.appendChild(lk); }
+    } else if (board[r][c] === 2) {
+      cell.classList.add('x');
+      const mark = document.createElement('span'); mark.className = 'mark'; mark.textContent = '✕';
+      cell.appendChild(mark);
+    }
+    if (shakeCellPos && shakeCellPos[0] === r && shakeCellPos[1] === c) cell.classList.add('shake');
+    if (hintCell && hintCell[0] === r && hintCell[1] === c) cell.classList.add('hint-pulse');
+    cell.addEventListener('click', () => onTap(r, c));
+    boardEl.appendChild(cell);
+  }
+  renderHearts();
+  document.getElementById('level').textContent = `第 ${level} 關 · ${N}×${N}`;
+  document.getElementById('progress').textContent = `${catCount()}/${N}`;
+}
+function renderHearts() {
+  const h = document.getElementById('hearts'); h.innerHTML = '';
+  for (let i = 0; i < START_HEARTS; i++) {
+    const s = document.createElement('span');
+    s.textContent = '❤️';
+    if (i < hearts) s.classList.add('on');
+    h.appendChild(s);
+  }
+}
+
+/* ── 輸入 ── */
+function onTap(r, c) {
+  if (locked[r][c]) return;
+  touch();
+  if (catMode) {
+    if (board[r][c] === 1) removeCat(r, c);
+    else placeCat(r, c);
+  } else {
+    if (board[r][c] === 1) removeCat(r, c);
+    else toggleX(r, c);
+  }
+}
+
+/* ── 按鈕 ── */
+document.getElementById('modeBtn').addEventListener('click', function () {
+  catMode = !catMode;
+  this.classList.toggle('mode-on', catMode);
+  this.textContent = catMode ? '✕ 標記模式' : '🐱 放貓模式';
+  document.getElementById('modetext').textContent = catMode
+    ? '目前模式：🐱 放貓（點格 = 放貓，點已放嘅貓 = 移除）'
+    : '目前模式：✕ 標記（點格 = 標 ✕，點已放嘅貓 = 移除）';
+  render();
+});
+document.getElementById('hint').addEventListener('click', hint);
+document.getElementById('undo').addEventListener('click', undo);
+document.getElementById('reset').addEventListener('click', resetLevel);
+document.getElementById('next').addEventListener('click', nextLevel);
+
+/* ── 測試 API（headless） ── */
+globalThis.__meowdoku = {
+  genPlacement, generateRegions, findSolutions, generateLevel, loadLevel, newGame, nextLevel,
+  placeCat, removeCat, toggleX, isValidPlacement, isWon, hint, undo,
+  regionOf: () => regionOf.map(r => r.slice()),
+  regionCells: () => regionCells.map(a => a.slice()),
+  solution: () => solution.map(x => x.slice()),
+  starters: () => starters.map(x => x.slice()),
+  board: () => board.map(r => r.slice()),
+  setBoard: b => { board = b.map(r => r.slice()); },
+  hearts: () => hearts,
+  N: () => N, level: () => level,
+};
+
+// ── 啟動 ──
+newGame();
+</script>
+</body>
+</html>
