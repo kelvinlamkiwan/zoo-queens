@@ -17,16 +17,16 @@
 </script>
 <style>
   :root {
-    --page1: #fdf6f0;
-    --page2: #f6ecf4;
+    --page1: #f5f7fa;
+    --page2: #e9edf4;
     --card: #ffffff;
-    --text: #4a3f46;
-    --muted: #a2939a;
-    --region-border: #b0939e;
-    --accent: #e091a8;
-    --accent-dark: #d17a94;
-    --wrong: #e05d6b;
-    --gold: #e8b04c;
+    --text: #1f2430;
+    --muted: #6b7280;
+    --region-border: #ffffff;
+    --accent: #4a90d9;
+    --accent-dark: #2f6fb8;
+    --wrong: #e5484d;
+    --gold: #f5a623;
     --coffee: #ffdd00;
     --payme: #1e5eff;
   }
@@ -50,6 +50,9 @@
   h1 { font-size: 25px; font-weight: 800; letter-spacing: .5px; }
   h1 .pink { color: var(--accent-dark); }
   .subtitle { color: var(--muted); font-size: 12.5px; margin: 4px auto 0; max-width: 400px; line-height: 1.55; }
+  .rules { display: flex; gap: 12px; justify-content: center; margin: 12px auto 0; flex-wrap: wrap; }
+  .rule { width: 40px; height: 40px; cursor: help; }
+  .rule svg { display: block; }
 
   /* ── HUD ── */
   .hud {
@@ -151,12 +154,49 @@
   <header>
     <span class="mascot" id="mascot">🦁</span>
     <h1>Zoo Queens <span class="pink">動物園皇后</span></h1>
-    <p class="subtitle">每區、每行、每列各放一隻動物；動物與動物不能相鄰（包括斜角）。點格 = 標 ✕，開「放動物模式」先可以放動物。</p>
+    <div class="rules">
+      <div class="rule" title="每個彩色區域只能放一隻動物">
+        <svg viewBox="0 0 33 33" width="40" height="40">
+          <rect x="0.5" y="0.5" width="32" height="32" rx="6" fill="#fff" stroke="#e0e4ec"/>
+          <rect x="1" y="1" width="22" height="11" fill="#4a90d9"/>
+          <rect x="1" y="1" width="11" height="22" fill="#4a90d9"/>
+          <circle cx="6.5" cy="6.5" r="4" fill="#fff"/>
+          <path d="M1 12 H32 M1 23 H32 M12 1 V32 M23 1 V32" stroke="#e0e4ec" stroke-width="1"/>
+        </svg>
+      </div>
+      <div class="rule" title="每一行只能放一隻動物">
+        <svg viewBox="0 0 33 33" width="40" height="40">
+          <rect x="0.5" y="0.5" width="32" height="32" rx="6" fill="#fff" stroke="#e0e4ec"/>
+          <rect x="1" y="12" width="31" height="11" fill="#4a90d9"/>
+          <circle cx="6.5" cy="17.5" r="4" fill="#fff"/>
+          <path d="M1 12 H32 M1 23 H32 M12 1 V32 M23 1 V32" stroke="#e0e4ec" stroke-width="1"/>
+        </svg>
+      </div>
+      <div class="rule" title="每一列只能放一隻動物">
+        <svg viewBox="0 0 33 33" width="40" height="40">
+          <rect x="0.5" y="0.5" width="32" height="32" rx="6" fill="#fff" stroke="#e0e4ec"/>
+          <rect x="12" y="1" width="11" height="31" fill="#4a90d9"/>
+          <circle cx="17.5" cy="6.5" r="4" fill="#fff"/>
+          <path d="M1 12 H32 M1 23 H32 M12 1 V32 M23 1 V32" stroke="#e0e4ec" stroke-width="1"/>
+        </svg>
+      </div>
+      <div class="rule" title="動物與動物不能相鄰（含斜角）">
+        <svg viewBox="0 0 33 33" width="40" height="40">
+          <rect x="0.5" y="0.5" width="32" height="32" rx="6" fill="#fff" stroke="#e0e4ec"/>
+          <circle cx="6.5" cy="6.5" r="4" fill="#4a90d9"/>
+          <circle cx="17.5" cy="17.5" r="4" fill="#e5484d"/>
+          <path d="M17.5 6.5 L6.5 17.5" stroke="#e5484d" stroke-width="2"/>
+          <path d="M1 12 H32 M1 23 H32 M12 1 V32 M23 1 V32" stroke="#e0e4ec" stroke-width="1"/>
+        </svg>
+      </div>
+    </div>
   </header>
 
   <div class="hud">
-    <span class="chip">🏁 <span class="val" id="level">第 1 關 · 4×4</span></span>
-    <span class="chip">🦁 <span class="val" id="progress">0/4</span></span>
+    <span class="chip">🏁 <span class="val" id="level">Level 1 · 4×4</span></span>
+    <span class="chip" id="diffChip">📶 <span class="val" id="diff">Easy</span></span>
+    <span class="chip">⭐ <span class="val" id="score">0</span></span>
+    <span class="chip">🏆 <span class="val" id="best">0</span></span>
     <span class="hearts" id="hearts"></span>
     <span class="chip">⏱ <span class="val" id="timer">00:00</span></span>
   </div>
@@ -164,13 +204,9 @@
   <div class="board-wrap"><div class="board" id="board"></div></div>
 
   <div class="controls">
-    <button class="btn" id="modeBtn">🦁 放動物模式</button>
-    <button class="btn" id="hint">💡 提示</button>
     <button class="btn" id="undo">↩️ 復原</button>
     <button class="btn" id="reset">🔄 重設</button>
-    <button class="btn primary" id="next">▶️ 下一關</button>
   </div>
-  <div class="modetext" id="modetext">目前模式：✕ 標記（點格 = 標 ✕，點已放嘅動物 = 移除）</div>
 
   <div class="donate">
     <div class="d-title">☕ 鍾意 Zoo Queens？</div>
@@ -205,8 +241,9 @@
 
 // ── Config ──
 const PALETTE = [
-  '#f7c8d8','#f7dcc8','#f7ecc8','#cfe8cf','#c8e0f0','#dcd0f0',
-  '#f0c8d0','#d0e8e0','#f0e0c8','#c8d8f0','#e8c8e8','#e0f0c8',
+  '#4a90d9','#4caf50','#f5a623','#9b59b6',
+  '#e91e63','#00bcd4','#e74c3c','#f1c40f',
+  '#8bc34a','#ff7043','#3f51b5','#00c853',
 ];
 const MAX_ATTEMPTS = 400;
 const NODE_LIMIT = 200000;
@@ -215,6 +252,8 @@ const ANIMAL_IMG = 'animal.png';   // 自訂動物圖（可換成 animal.svg 並
 
 function nForLevel(level) { return Math.min(4 + (level - 1), 12); }
 function startersFor(N) { return N <= 6 ? 1 : (N <= 9 ? 2 : 3); }
+function difficultyFor(N) { return N <= 5 ? 'Easy' : N <= 8 ? 'Normal' : 'Hard'; }
+const DIFF_COLOR = { Easy: '#4caf50', Normal: '#f5a623', Hard: '#e5484d' };
 
 // ── State ──
 let level = 1;
@@ -222,6 +261,7 @@ let N = 4;
 let regionOf = [], regionCells = [], solution = [], starters = [];
 let board = [], locked = [];
 let hearts = START_HEARTS, history = [], animalMode = false;
+let score = 0, best = +(localStorage.getItem('zooqueens-best') || 0);
 let hintCell = null, hintTimer = null;
 let seconds = 0, timerInt = null, started = false;
 
@@ -367,7 +407,7 @@ function generateLevel(n, starterCount) {
 function loadLevel(lv) {
   level = lv;
   N = nForLevel(level);
-  const g = generateLevel(N, startersFor(N));
+  const g = generateLevel(N, 0);
   if (!g) { toast('生成失敗，重試中…'); loadLevel(lv); return; }
   regionOf = g.regionOf; regionCells = g.regionCells; solution = g.solution; starters = g.starters;
   board = Array.from({ length: N }, () => Array(N).fill(0));
@@ -378,7 +418,7 @@ function loadLevel(lv) {
   document.getElementById('timer').textContent = '00:00';
   hideOverlay(); render();
 }
-function newGame() { loadLevel(1); }
+function newGame() { score = 0; loadLevel(1); }
 function nextLevel() { loadLevel(level + 1); }
 function resetLevel() { loadLevel(level); }
 
@@ -481,7 +521,11 @@ function markPop(r, c) { popCell = [r, c]; setTimeout(() => { popCell = null; re
 
 function win() {
   stopTimer();
-  showOverlay('🎉', '全部動物返咗屋企！', `第 ${level} 關完成，用咗 ${document.getElementById('timer').textContent}。`,
+  const timeBonus = Math.max(0, 300 - seconds);
+  const gained = N * 100 + hearts * 50 + timeBonus;
+  score += gained;
+  if (score > best) { best = score; localStorage.setItem('zooqueens-best', best); }
+  showOverlay('🎉', '全部動物返咗屋企！', `第 ${level} 關完成 +${gained} 分（用咗 ${document.getElementById('timer').textContent}）。`,
     [['▶️ 下一關', nextLevel, ''], ['🔄 再玩一次', resetLevel, 'ghost']]);
   celebrate();
 }
@@ -554,7 +598,7 @@ function render() {
   boardEl.style.gridTemplateRows = `repeat(${N}, 1fr)`;
   for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
     const cell = document.createElement('div');
-    cell.className = 'cell' + (animalMode ? ' animalmode-ready' : '');
+    cell.className = 'cell';
     const reg = regionOf[r][c];
     cell.style.background = PALETTE[reg % PALETTE.length];
     const st = r > 0 && regionOf[r-1][c] === reg;
@@ -582,8 +626,12 @@ function render() {
     boardEl.appendChild(cell);
   }
   renderHearts();
-  document.getElementById('level').textContent = `第 ${level} 關 · ${N}×${N}`;
-  document.getElementById('progress').textContent = `${animalCount()}/${N}`;
+  document.getElementById('level').textContent = `Level ${level} · ${N}×${N}`;
+  const d = difficultyFor(N);
+  document.getElementById('diff').textContent = d;
+  document.getElementById('diff').style.color = DIFF_COLOR[d];
+  document.getElementById('score').textContent = score;
+  document.getElementById('best').textContent = best;
 }
 function renderHearts() {
   const h = document.getElementById('hearts'); h.innerHTML = '';
@@ -599,29 +647,13 @@ function renderHearts() {
 function onTap(r, c) {
   if (locked[r][c]) return;
   touch();
-  if (animalMode) {
-    if (board[r][c] === 1) removeCat(r, c);
-    else placeCat(r, c);
-  } else {
-    if (board[r][c] === 1) removeCat(r, c);
-    else toggleX(r, c);
-  }
+  if (board[r][c] === 1) removeCat(r, c);
+  else placeCat(r, c);
 }
 
 /* ── 按鈕 ── */
-document.getElementById('modeBtn').addEventListener('click', function () {
-  animalMode = !animalMode;
-  this.classList.toggle('mode-on', animalMode);
-  this.textContent = animalMode ? '✕ 標記模式' : '🦁 放動物模式';
-  document.getElementById('modetext').textContent = animalMode
-    ? '目前模式：🦁 放動物（點格 = 放動物，點已放嘅動物 = 移除）'
-    : '目前模式：✕ 標記（點格 = 標 ✕，點已放嘅動物 = 移除）';
-  render();
-});
-document.getElementById('hint').addEventListener('click', hint);
 document.getElementById('undo').addEventListener('click', undo);
 document.getElementById('reset').addEventListener('click', resetLevel);
-document.getElementById('next').addEventListener('click', nextLevel);
 
 /* ── 測試 API（headless） ── */
 globalThis.__zooqueens = {
