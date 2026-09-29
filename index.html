@@ -28,7 +28,6 @@
     --wrong: #e5484d;
     --gold: #f5a623;
     --coffee: #ffdd00;
-    --payme: #1e5eff;
   }
   * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body { min-height: 100%; }
@@ -121,8 +120,6 @@
   }
   .donate-btn:active { transform: scale(.95); }
   .donate-btn.coffee { background: var(--coffee); color: #4a3f00; }
-  .donate-btn.payme { background: var(--payme); color: #fff; }
-  .donate-btn.fps { background: #fff; color: #2b3440; border: 1.5px solid #2b3440; }
 
   footer { margin-top: 14px; color: var(--muted); font-size: 11px; text-align: center; }
 
@@ -213,8 +210,6 @@
     <div class="d-sub">如果你玩得開心，請我飲杯咖啡支持我繼續開發更多遊戲。</div>
     <div class="donate-btns">
       <a class="donate-btn coffee" href="https://buymeacoffee.com/aidonthurtpoor" target="_blank" rel="noopener">☕ Buy Me a Coffee</a>
-      <a class="donate-btn payme" href="#" target="_blank" rel="noopener">PayMe</a>
-      <a class="donate-btn fps" href="#" target="_blank" rel="noopener">轉數快 FPS</a>
     </div>
   </div>
 
@@ -447,7 +442,12 @@ function isValidPlacement(r, c) {
 
 function placeCat(r, c) {
   if (board[r][c] === 1) return;
-  if (!isValidPlacement(r, c)) { shakeCell(r, c); loseHeart(); return; }
+  const hadX = board[r][c] === 2;
+  if (hadX) board[r][c] = 0;               // clear the ✕ before placing
+  if (!isValidPlacement(r, c)) {
+    if (hadX) board[r][c] = 2;             // revert ✕ on invalid placement
+    shakeCell(r, c); loseHeart(); return;
+  }
   pushHistory();
   board[r][c] = 1;
   markPop(r, c);
@@ -644,11 +644,23 @@ function renderHearts() {
 }
 
 /* ── 輸入 ── */
+let tapTimer = null;
 function onTap(r, c) {
   if (locked[r][c]) return;
   touch();
-  if (board[r][c] === 1) removeCat(r, c);
-  else placeCat(r, c);
+  if (tapTimer) {
+    // double-click → place/remove the animal
+    clearTimeout(tapTimer);
+    tapTimer = null;
+    if (board[r][c] === 1) removeCat(r, c);
+    else placeCat(r, c);
+  } else {
+    // single-click → toggle ✕ (deferred 250ms to detect a double-click)
+    tapTimer = setTimeout(() => {
+      tapTimer = null;
+      toggleX(r, c);
+    }, 250);
+  }
 }
 
 /* ── 按鈕 ── */
