@@ -273,6 +273,7 @@ let score = 0, best = +(localStorage.getItem('zooqueens-best') || 0);
 let hintCell = null, hintTimer = null;
 let seconds = 0, timerInt = null, started = false;
 let g3d = null, g3dFailed = false, pendingPop3D = null, animalIdx3D = 0, baseY3D = 0;
+let cubeN = 4, cubeFaces = [], cubeHistory = [];
 
 // ── 工具 ──
 function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
@@ -415,20 +416,41 @@ function generateLevel(n, starterCount) {
    ════════════════════════════════════════════════════════════════ */
 function loadLevel(lv) {
   const was3D = is3DMode();
+  const wasCube = isCubeMode();
   level = lv;
   N = nForLevel(level);
-  const g = generateLevel(N, 0);
-  if (!g) { toast('生成失敗，重試中…'); loadLevel(lv); return; }
-  regionOf = g.regionOf; regionCells = g.regionCells; solution = g.solution; starters = g.starters;
-  board = Array.from({ length: N }, () => Array(N).fill(0));
-  locked = Array.from({ length: N }, () => Array(N).fill(false));
-  for (const [r, c] of starters) { board[r][c] = 1; locked[r][c] = true; }
-  hearts = START_HEARTS; history = []; hintCell = null; started = false; seconds = 0;
+  if (isCubeMode()) {
+    if (!generateCubeLevel()) return;
+  } else {
+    const g = generateLevel(N, 0);
+    if (!g) { toast('生成失敗，重試中…'); loadLevel(lv); return; }
+    regionOf = g.regionOf; regionCells = g.regionCells; solution = g.solution; starters = g.starters;
+    board = Array.from({ length: N }, () => Array(N).fill(0));
+    locked = Array.from({ length: N }, () => Array(N).fill(false));
+    for (const [r, c] of starters) { board[r][c] = 1; locked[r][c] = true; }
+  }
+  hearts = START_HEARTS; history = []; cubeHistory = []; hintCell = null; started = false; seconds = 0;
   stopTimer();
   document.getElementById('timer').textContent = '00:00';
   applyModeVisibility();
   hideOverlay(); render();
-  if (is3DMode() && !was3D) toast('🎉 進入 3D 模式！');
+  if (isCubeMode() && !wasCube) toast('🎉 進入 3D Cube 六面模式！');
+  else if (is3DMode() && !was3D) toast('🎉 進入 3D 模式！');
+}
+function generateCubeLevel() {
+  cubeN = Math.min(4 + Math.floor((level - 25) / 3), 6);   // L25→4, L28→5, L31+→6
+  cubeFaces = [];
+  for (let f = 0; f < 6; f++) {
+    let g = null;
+    for (let a = 0; a < 30 && !g; a++) g = generateLevel(cubeN, 0);
+    if (!g) { toast('六面生成失敗，重試中…'); loadLevel(level); return false; }
+    cubeFaces.push({
+      regionOf: g.regionOf, regionCells: g.regionCells, solution: g.solution,
+      board: Array.from({ length: cubeN }, () => Array(cubeN).fill(0)),
+      locked: Array.from({ length: cubeN }, () => Array(cubeN).fill(false)),
+    });
+  }
+  return true;
 }
 function newGame() { score = 0; loadLevel(1); }
 function nextLevel() { loadLevel(level + 1); }
@@ -439,7 +461,16 @@ function startTimer() { if (timerInt) return; timerInt = setInterval(() => { sec
 function stopTimer() { if (timerInt) { clearInterval(timerInt); timerInt = null; } }
 
 function pushHistory() { history.push(board.map(r => r.slice())); if (history.length > 500) history.shift(); }
-function undo() { if (!history.length) return; board = history.pop(); render(); }
+function undo() {
+  if (isCubeMode()) {
+    if (!cubeHistory.length) return;
+    const prev = cubeHistory.pop();
+    cubeFaces.forEach((f, i) => { f.board = prev[i].board; });
+    renderCube(); return;
+  }
+  if (!history.length) return;
+  board = history.pop(); render();
+}
 
 /* ── 驗證 / 放置 ── */
 function rowHasCat(r) { for (let c = 0; c < N; c++) if (board[r][c] === 1) return true; return false; }
@@ -545,10 +576,12 @@ function markPop(r, c) {
 function win() {
   stopTimer();
   const timeBonus = Math.max(0, 300 - seconds);
-  const gained = N * 100 + hearts * 50 + timeBonus;
+  const total = isCubeMode() ? 6 * cubeN : N;
+  const gained = total * 100 + hearts * 50 + timeBonus;
   score += gained;
   if (score > best) { best = score; localStorage.setItem('zooqueens-best', best); }
-  showOverlay('🎉', '全部動物返咗屋企！', `第 ${level} 關完成 +${gained} 分（用咗 ${document.getElementById('timer').textContent}）。`,
+  const title = isCubeMode() ? '六面全部解完！' : '全部動物返咗屋企！';
+  showOverlay('🎉', title, `第 ${level} 關完成 +${gained} 分（用咗 ${document.getElementById('timer').textContent}）。`,
     [['▶️ 下一關', nextLevel, ''], ['🔄 再玩一次', resetLevel, 'ghost']]);
   celebrate();
 }
@@ -661,10 +694,20 @@ function render2D() {
 }
 function renderHUD() {
   renderHearts();
-  document.getElementById('level').textContent = `Level ${level} · ${N}×${N}` + (isCubeMode() ? ' · 3D Cube' : is3DMode() ? ' · 3D' : '');
-  const d = difficultyFor(N);
-  document.getElementById('diff').textContent = d;
-  document.getElementById('diff').style.color = DIFF_COLOR[d];
+  if (isCubeMode()) {
+    const done = cubeFaces.filter(f => {
+      let c = 0; for (const row of f.board) for (const v of row) if (v === 1) c++;
+      return c === cubeN;
+    }).length;
+    document.getElementById('level').textContent = `Level ${level} · Cube ${done}/6`;
+    document.getElementById('diff').textContent = `${cubeN}×${cubeN}`;
+    document.getElementById('diff').style.color = '#4a90d9';
+  } else {
+    document.getElementById('level').textContent = `Level ${level} · ${N}×${N}` + (is3DMode() ? ' · 3D' : '');
+    const d = difficultyFor(N);
+    document.getElementById('diff').textContent = d;
+    document.getElementById('diff').style.color = DIFF_COLOR[d];
+  }
   document.getElementById('score').textContent = score;
   document.getElementById('best').textContent = best;
 }
@@ -685,7 +728,8 @@ function is3DMode() { return level >= THREE_D_LEVEL && !g3dFailed; }
 function isCubeMode() { return level >= CUBE_LEVEL && !g3dFailed; }
 
 function render() {
-  if (is3DMode()) render3D();
+  if (isCubeMode()) renderCube();
+  else if (is3DMode()) render3D();
   else render2D();
 }
 
@@ -714,9 +758,9 @@ function ensure3D() {
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   container.appendChild(renderer.domElement);
 
-  scene.add(new THREE.AmbientLight(0xffffff, 0.4));
-  scene.add(new THREE.HemisphereLight(0xffffff, 0x9aa7b8, 0.2));
-  const dir = new THREE.DirectionalLight(0xffffff, 0.85);
+  scene.add(new THREE.AmbientLight(0xffffff, 0.9));
+  scene.add(new THREE.HemisphereLight(0xffffff, 0x9aa7b8, 0.25));
+  const dir = new THREE.DirectionalLight(0xffffff, 0.4);
   dir.position.set(10, 18, 11);
   dir.castShadow = true;
   dir.shadow.mapSize.set(2048, 2048);
@@ -783,7 +827,9 @@ function bind3DInput(dom) {
     const dx = e.clientX - sx, dy = e.clientY - sy;
     if (dx * dx + dy * dy > 36) return;   // 當做 drag/rotate
     const cell = pickCell3D(e, dom);
-    if (cell) onTap(cell[0], cell[1]);
+    if (!cell) return;
+    if (isCubeMode()) onTapCube(cell.face, cell.r, cell.c);
+    else onTap(cell.r, cell.c);
   });
 }
 
@@ -793,10 +839,12 @@ function pickCell3D(e, dom) {
   g3d.pointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
   g3d.pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
   g3d.ray.setFromCamera(g3d.pointer, g3d.camera);
-  const hits = g3d.ray.intersectObjects(g3d.cellMeshes, false);
+  const targets = g3d.cubeBody ? [g3d.cubeBody].concat(g3d.cellMeshes) : g3d.cellMeshes;
+  const hits = g3d.ray.intersectObjects(targets, false);
   if (!hits.length) return null;
+  if (hits[0].object === g3d.cubeBody) return null;   // 射中 cube body（格仔 gap）
   const u = hits[0].object.userData;
-  return [u.r, u.c];
+  return { face: (u.face === undefined ? -1 : u.face), r: u.r, c: u.c };
 }
 
 function fitCamera3D() {
@@ -831,33 +879,17 @@ function render3D() {
 
   const off = (N - 1) / 2;
   const tileH = 0.16, gap = 0.06;
-  const cube = isCubeMode();
   const S = N + 0.6;
-  baseY3D = cube ? S / 2 : 0;
+  baseY3D = 0;
+  g.cubeBody = null;
 
-  if (cube) {
-    // 六面 cube 底座（棋盤貼喺頂面，可旋轉睇六面）
-    const cubeMesh = new THREE.Mesh(
-      new THREE.BoxGeometry(S, S, S),
-      new THREE.MeshStandardMaterial({ color: 0xf7f9fc, roughness: 0.82, metalness: 0.05 })
-    );
-    cubeMesh.castShadow = true;
-    cubeMesh.receiveShadow = true;
-    g.boardGroup.add(cubeMesh);
-    const edges = new THREE.LineSegments(
-      new THREE.EdgesGeometry(cubeMesh.geometry),
-      new THREE.LineBasicMaterial({ color: 0xc3ccd8 })
-    );
-    g.boardGroup.add(edges);
-  } else {
-    const backing = new THREE.Mesh(
-      new THREE.BoxGeometry(S, 0.2, S),
-      new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.9, metalness: 0 })
-    );
-    backing.position.set(0, -0.1, 0);
-    backing.receiveShadow = true;
-    g.boardGroup.add(backing);
-  }
+  const backing = new THREE.Mesh(
+    new THREE.BoxGeometry(S, 0.2, S),
+    new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.9, metalness: 0 })
+  );
+  backing.position.set(0, -0.1, 0);
+  backing.receiveShadow = true;
+  g.boardGroup.add(backing);
 
   for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
     const reg = regionOf[r][c];
@@ -993,6 +1025,224 @@ function disposeObj3D(obj) {
   }
 }
 
+/* ════════════════════════════════════════════════════════════════
+   Cube 六面模式 —— level >= 25：六面各自一個 Queens 棋盤
+   ════════════════════════════════════════════════════════════════ */
+const CUBE_FACE_DEFS = [
+  { rot: [0, 0, 0],            pos: [0, 0, 1] },   // front +Z
+  { rot: [0, Math.PI, 0],      pos: [0, 0, -1] },  // back  -Z
+  { rot: [-Math.PI / 2, 0, 0], pos: [0, 1, 0] },   // top   +Y
+  { rot: [Math.PI / 2, 0, 0],  pos: [0, -1, 0] },  // bottom -Y
+  { rot: [0, Math.PI / 2, 0],  pos: [1, 0, 0] },   // right +X
+  { rot: [0, -Math.PI / 2, 0], pos: [-1, 0, 0] },  // left  -X
+];
+
+function cubeHasCat(f, r, c) {
+  const face = cubeFaces[f], b = face.board;
+  for (let cc = 0; cc < cubeN; cc++) if (b[r][cc] === 1) return true;
+  for (let rr = 0; rr < cubeN; rr++) if (b[rr][c] === 1) return true;
+  const reg = face.regionOf[r][c];
+  for (const [rr, cc] of face.regionCells[reg]) if (b[rr][cc] === 1) return true;
+  for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) {
+    if (!dr && !dc) continue;
+    const nr = r + dr, nc = c + dc;
+    if (nr >= 0 && nr < cubeN && nc >= 0 && nc < cubeN && b[nr][nc] === 1) return true;
+  }
+  return false;
+}
+function cubePlaceCat(f, r, c) {
+  const face = cubeFaces[f];
+  if (face.board[r][c] === 1) return;
+  const hadX = face.board[r][c] === 2;
+  if (hadX) face.board[r][c] = 0;
+  if (cubeHasCat(f, r, c)) {
+    if (hadX) face.board[r][c] = 2;
+    shakeCube(f, r, c); loseHeart(); return;
+  }
+  pushCubeHistory();
+  face.board[r][c] = 1;
+  renderCube();
+  const s = g3d.spriteByCell[f + ',' + r + ',' + c];
+  if (s) g3d.pops.push({ spr: s, t: performance.now(), w: s.scale.x, h: s.scale.y });
+  if (cubeIsWon()) win();
+}
+function cubeRemoveCat(f, r, c) {
+  const face = cubeFaces[f];
+  if (face.board[r][c] !== 1 || face.locked[r][c]) return;
+  pushCubeHistory();
+  face.board[r][c] = 0;
+  renderCube();
+}
+function cubeToggleX(f, r, c) {
+  const face = cubeFaces[f];
+  if (face.board[r][c] === 1) return;
+  pushCubeHistory();
+  face.board[r][c] = face.board[r][c] === 2 ? 0 : 2;
+  renderCube();
+}
+function cubeIsWon() {
+  return cubeFaces.every(f => {
+    let c = 0;
+    for (const row of f.board) for (const v of row) if (v === 1) c++;
+    return c === cubeN;
+  });
+}
+function pushCubeHistory() {
+  cubeHistory.push(cubeFaces.map(f => ({ board: f.board.map(r => r.slice()) })));
+  if (cubeHistory.length > 300) cubeHistory.shift();
+}
+function onTapCube(f, r, c) {
+  if (cubeFaces[f].locked[r][c]) return;
+  touch();
+  if (tapTimer) {
+    clearTimeout(tapTimer); tapTimer = null;
+    if (cubeFaces[f].board[r][c] === 1) cubeRemoveCat(f, r, c);
+    else cubePlaceCat(f, r, c);
+  } else {
+    tapTimer = setTimeout(() => { tapTimer = null; cubeToggleX(f, r, c); }, 250);
+  }
+}
+function shakeCube(f, r, c) {
+  for (const m of g3d.cellMeshes) {
+    if (m.userData.face === f && m.userData.r === r && m.userData.c === c) m.material.color.set(0xe5484d);
+  }
+  setTimeout(() => {
+    for (const m of g3d.cellMeshes) {
+      if (m.userData.face === f && m.userData.r === r && m.userData.c === c) m.material.color.set(m.userData.base);
+    }
+  }, 400);
+}
+
+function renderCube() {
+  const g = g3d;
+  while (g.boardGroup.children.length) {
+    const ch = g.boardGroup.children[0];
+    g.boardGroup.remove(ch);
+    disposeObj3D(ch);
+  }
+  g.cellMeshes = [];
+  g.spriteByCell = {};
+  g.pops = [];
+
+  const S = cubeN + 0.6;
+  const gap = 0.06;
+  const off = (cubeN - 1) / 2;
+
+  // cube 六面 body + 邊緣線
+  const cubeMesh = new THREE.Mesh(
+    new THREE.BoxGeometry(S, S, S),
+    new THREE.MeshStandardMaterial({ color: 0xf7f9fc, roughness: 0.82, metalness: 0.05 })
+  );
+  g.boardGroup.add(cubeMesh);
+  g.cubeBody = cubeMesh;
+  g.boardGroup.add(new THREE.LineSegments(
+    new THREE.EdgesGeometry(cubeMesh.geometry),
+    new THREE.LineBasicMaterial({ color: 0xc3ccd8 })
+  ));
+
+  animalIdx3D = 0;
+  for (let f = 0; f < 6; f++) {
+    const def = CUBE_FACE_DEFS[f];
+    const face = cubeFaces[f];
+    const grp = new THREE.Group();
+    grp.rotation.set(def.rot[0], def.rot[1], def.rot[2]);
+    grp.position.set(def.pos[0] * S / 2, def.pos[1] * S / 2, def.pos[2] * S / 2);
+    g.boardGroup.add(grp);
+
+    for (let r = 0; r < cubeN; r++) for (let c = 0; c < cubeN; c++) {
+      const reg = face.regionOf[r][c];
+      const col = PALETTE[reg % PALETTE.length];
+      const u = c - off, v = r - off;
+      const m = new THREE.Mesh(
+        new THREE.PlaneGeometry(1 - gap, 1 - gap),
+        new THREE.MeshStandardMaterial({ color: new THREE.Color(col), roughness: 0.72, metalness: 0.05 })
+      );
+      m.position.set(u, v, 0.012);
+      m.userData = { face: f, r, c, base: col };
+      grp.add(m);
+      g.cellMeshes.push(m);
+    }
+
+    // 區域邊界白線（面內，唔同 region 之間）
+    const bMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+    for (let r = 0; r < cubeN; r++) for (let c = 0; c < cubeN; c++) {
+      const reg = face.regionOf[r][c];
+      const u = c - off, v = r - off;
+      if (c + 1 < cubeN && face.regionOf[r][c + 1] !== reg) {
+        const b = new THREE.Mesh(new THREE.PlaneGeometry(gap * 1.6, 1), bMat);
+        b.position.set(u + 0.5, v, 0.02);
+        grp.add(b);
+      }
+      if (r + 1 < cubeN && face.regionOf[r + 1][c] !== reg) {
+        const b = new THREE.Mesh(new THREE.PlaneGeometry(1, gap * 1.6), bMat);
+        b.position.set(u, v + 0.5, 0.02);
+        grp.add(b);
+      }
+    }
+
+    // 動物 / ✕
+    for (let r = 0; r < cubeN; r++) for (let c = 0; c < cubeN; c++) {
+      const u = c - off, v = r - off;
+      if (face.board[r][c] === 1) addCubeAnimal(grp, f, r, c, u, v);
+      else if (face.board[r][c] === 2) addCubeX(grp, u, v);
+    }
+  }
+
+  fitCameraCube();
+  renderHUD();
+}
+
+function addCubeAnimal(grp, f, r, c, u, v) {
+  const kind = ANIMALS_3D[animalIdx3D % ANIMALS_3D.length];
+  animalIdx3D++;
+  const tex = g3d.animalTex[kind];
+  const img = tex.image;
+  let aspect = 1;
+  if (img && img.width && img.height) aspect = img.height / img.width;
+  const bw = 0.7;
+  const bh = Math.min(0.9, Math.max(0.45, bw * aspect));
+  const spr = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false }));
+  spr.scale.set(bw, bh, 1);
+  spr.position.set(u, v, 0.2 + bh / 2);
+  grp.add(spr);
+  g3d.spriteByCell[f + ',' + r + ',' + c] = spr;
+}
+
+function addCubeX(grp, u, v) {
+  const ov = new THREE.Mesh(
+    new THREE.PlaneGeometry(0.94, 0.94),
+    new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.55, depthWrite: false })
+  );
+  ov.position.set(u, v, 0.03);
+  grp.add(ov);
+  const xm = new THREE.MeshBasicMaterial({ color: 0x8f969e });
+  const len = 0.58, w = 0.07;
+  const a = new THREE.Mesh(new THREE.PlaneGeometry(len, w), xm);
+  a.position.set(u, v, 0.035); a.rotation.z = Math.PI / 4;
+  grp.add(a);
+  const b = new THREE.Mesh(new THREE.PlaneGeometry(len, w), xm);
+  b.position.set(u, v, 0.035); b.rotation.z = -Math.PI / 4;
+  grp.add(b);
+}
+
+function fitCameraCube() {
+  const S = cubeN + 0.6;
+  const radius = (S * Math.sqrt(3)) / 2;
+  const fovRad = g3d.camera.fov * Math.PI / 360;
+  const dist = Math.max((radius / Math.tan(fovRad)) * 1.25, 6);
+  const elev = 30 * Math.PI / 180, azi = 40 * Math.PI / 180;
+  g3d.camera.position.set(
+    dist * Math.cos(elev) * Math.sin(azi),
+    dist * Math.sin(elev),
+    dist * Math.cos(elev) * Math.cos(azi)
+  );
+  g3d.controls.target.set(0, 0, 0);
+  g3d.controls.minDistance = dist * 0.5;
+  g3d.controls.maxDistance = dist * 3.5;
+  g3d.controls.maxPolarAngle = Math.PI;
+  g3d.controls.update();
+}
+
 /* ── 輸入 ── */
 let tapTimer = null;
 function onTap(r, c) {
@@ -1031,6 +1281,9 @@ globalThis.__zooqueens = {
   N: () => N, level: () => level,
   is3D: () => is3DMode(), g3dReady: () => !!g3d, isCube: () => isCubeMode(),
   THREE_D_LEVEL, DIFF_ANIMAL_LEVEL, CUBE_LEVEL, ANIMALS_3D,
+  cubeN: () => cubeN,
+  cubeFaces: () => cubeFaces.map(f => ({ board: f.board.map(r => r.slice()), regionOf: f.regionOf.map(r => r.slice()), solution: f.solution.map(x => x.slice()) })),
+  cubePlaceCat, cubeIsWon,
 };
 
 // ── 啟動 ──
