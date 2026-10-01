@@ -248,7 +248,7 @@ const PALETTE = [
   '#e91e63','#00bcd4','#e74c3c','#f1c40f',
   '#8bc34a','#ff7043','#3f51b5','#00c853',
 ];
-const MAX_ATTEMPTS = 400;
+const MAX_ATTEMPTS = 4000;
 const NODE_LIMIT = 200000;
 const START_HEARTS = 3;
 const ANIMAL_IMG = 'animal.png';   // 自訂動物圖（可換成 animal.svg 並改呢行）
@@ -402,6 +402,8 @@ function generateLevel(n, starterCount) {
     const sol = genPlacement(n);
     if (!sol) continue;
     const { regionOf: ro, regionCells: cells } = generateRegions(n, sol);
+    // 規則：size-1（單格）區域最多 1 個（保留 singleton 有助唯一解，只拒絕 2+ 個）
+    if (cells.filter(c => c.length === 1).length > 1) continue;
     const r1 = findSolutions(n, ro, cells, [], new Set(), 2, NODE_LIMIT);
     if (r1.aborted || r1.solutions.length !== 1) continue;
     const st = shuffle(sol.slice()).slice(0, starterCount);
@@ -1122,6 +1124,8 @@ function generateCubeHardLevel() {
     for (let f = 0; f < 6; f++) {
       const sol = placement[f];
       const { regionOf, regionCells } = generateRegions(cubeN, sol);
+      // 規則：size-1（單格）區域最多 1 個
+      if (regionCells.filter(c => c.length === 1).length > 1) { ok = false; break; }
       const r = findSolutions(cubeN, regionOf, regionCells, [], new Set(), 2, NODE_LIMIT);
       if (r.aborted || r.solutions.length !== 1) { ok = false; break; }
       faces.push({
