@@ -39,6 +39,7 @@
 - `index.html?level=25` → 直接開 Level 25（3D cube 六面）
 - `index.html?level=21` → 直接開 Level 21（3D flat plane）
 - `index.html#25`（hash 都得，但要全新載入先生效）
+- `index.html?level=25&hard=1` → 開 Level 25 + 困難模式（六面跨面相鄰）
 
 ## 自訂動物圖
 
