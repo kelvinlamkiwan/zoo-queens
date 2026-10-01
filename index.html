@@ -1287,7 +1287,21 @@ globalThis.__zooqueens = {
 };
 
 // ── 啟動 ──
-newGame();
+// URL 跳關：`?level=25` 或 `#25` 直接開指定關卡（例如跳去 3D cube 試玩）
+function urlStartLevel() {
+  try {
+    const q = new URLSearchParams(location.search).get('level');
+    if (q && +q >= 1) return Math.min(999, Math.floor(+q));
+    const h = (location.hash || '').match(/^#?(\d+)$/);
+    if (h && +h[1] >= 1) return Math.min(999, Math.floor(+h[1]));
+  } catch (e) {}
+  return null;
+}
+(function boot() {
+  const lv = urlStartLevel();
+  if (lv) { score = 0; loadLevel(lv); }
+  else newGame();
+})();
 </script>
 </body>
 </html>

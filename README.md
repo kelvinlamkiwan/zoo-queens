@@ -32,6 +32,14 @@
 
 直接用 browser 開 `index.html` 就得，零依賴、零 build step。
 
+### 直接跳關（試 3D / cube）
+
+喺 URL 加參數即可跳去指定關卡，唔使玩到咁後：
+
+- `index.html?level=25` → 直接開 Level 25（3D cube 六面）
+- `index.html?level=21` → 直接開 Level 21（3D flat plane）
+- `index.html#25`（hash 都得，但要全新載入先生效）
+
 ## 自訂動物圖
 
 畫好你嘅動物，改名做 `animal.png` 放喺根目錄，遊戲會自動套用。詳見 [CHARACTER_SPEC.md](CHARACTER_SPEC.md)。
