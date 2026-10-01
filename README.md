@@ -18,7 +18,15 @@
 - 關卡由 4×4 逐步升到 12×12
 - 💡 提示（highlight 強制格）、↩️ 復原、🔄 重設
 - 計時、3 心生命值
+- **Level 21+ 轉做 3D 模式**：同一玩法，用 Three.js 渲染成一平面但立體感嘅棋盤（透視 + 光影 + 動物企喺格仔上面），動物素材用 [Kenney Animal Pack](https://kenney.nl/assets/animal-pack)（CC0），可自由旋轉/縮放視角
 - 自訂動物圖（見 [CHARACTER_SPEC.md](CHARACTER_SPEC.md)）
+
+## 3D 模式（Level 21+）
+
+- `vendor/three.min.js` + `vendor/OrbitControls.js`（r147，本地載入，無 CDN 依賴）
+- 動物 PNG 喺 `assets/animals/`（10 隻 Kenney 動物），換圖直接 replace 檔案
+- 桌面：拖動旋轉視角、滾輪縮放；手機：單指 tap 放動物、雙指縮放
+- 玩法同 2D 完全一樣：單擊標 ✕、雙擊放動物
 
 ## 本地玩
 

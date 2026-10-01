@@ -15,6 +15,8 @@
 <script type="application/ld+json">
 {"@context":"https://schema.org","@type":"VideoGame","name":"Zoo Queens 動物園皇后","description":"Queens / Star Battle 邏輯謎題：每區每行每列一隻動物，8 方向不能相鄰。","genre":["Puzzle"],"applicationCategory":"Game"}
 </script>
+<script src="vendor/three.min.js"></script>
+<script src="vendor/OrbitControls.js"></script>
 <style>
   :root {
     --page1: #f5f7fa;
@@ -73,6 +75,9 @@
   /* ── Board ── */
   .board-wrap { background: var(--card); padding: 8px; border-radius: 18px; box-shadow: 0 12px 34px rgba(169,139,152,.26); }
   .board { display: grid; grid-auto-rows: 1fr; width: min(92vw, 456px); aspect-ratio: 1; border-radius: 11px; overflow: hidden; }
+  .board3d { width: min(94vw, 560px); height: min(94vw, 560px); margin: 0 auto; background: var(--card); padding: 8px; border-radius: 18px; box-shadow: 0 12px 34px rgba(169,139,152,.26); overflow: hidden; }
+  .board3d canvas { display: block; width: 100%; height: 100%; border-radius: 11px; }
+  .hidden { display: none !important; }
   .cell { position: relative; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: filter .12s; }
   .cell:active { filter: brightness(.95); }
   .cell.animalmode-ready:hover { box-shadow: inset 0 0 0 2px rgba(224,145,168,.5); }
@@ -198,7 +203,9 @@
     <span class="chip">⏱ <span class="val" id="timer">00:00</span></span>
   </div>
 
-  <div class="board-wrap"><div class="board" id="board"></div></div>
+  <div class="board-wrap" id="board-wrap"><div class="board" id="board"></div></div>
+
+  <div id="board3d" class="board3d hidden"></div>
 
   <div class="controls">
     <button class="btn" id="undo">↩️ 復原</button>
@@ -245,6 +252,10 @@ const NODE_LIMIT = 200000;
 const START_HEARTS = 3;
 const ANIMAL_IMG = 'animal.png';   // 自訂動物圖（可換成 animal.svg 並改呢行）
 
+// ── 3D 模式（level >= 21 用 Three.js 渲染）──
+const THREE_D_LEVEL = 21;
+const ANIMALS_3D = ['elephant','giraffe','hippo','monkey','panda','parrot','penguin','pig','rabbit','snake'];
+
 function nForLevel(level) { return Math.min(4 + (level - 1), 12); }
 function startersFor(N) { return N <= 6 ? 1 : (N <= 9 ? 2 : 3); }
 function difficultyFor(N) { return N <= 5 ? 'Easy' : N <= 8 ? 'Normal' : 'Hard'; }
@@ -259,6 +270,7 @@ let hearts = START_HEARTS, history = [], animalMode = false;
 let score = 0, best = +(localStorage.getItem('zooqueens-best') || 0);
 let hintCell = null, hintTimer = null;
 let seconds = 0, timerInt = null, started = false;
+let g3d = null, g3dFailed = false, pendingPop3D = null, animalIdx3D = 0;
 
 // ── 工具 ──
 function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
@@ -400,6 +412,7 @@ function generateLevel(n, starterCount) {
    遊戲流程
    ════════════════════════════════════════════════════════════════ */
 function loadLevel(lv) {
+  const was3D = is3DMode();
   level = lv;
   N = nForLevel(level);
   const g = generateLevel(N, 0);
@@ -411,7 +424,9 @@ function loadLevel(lv) {
   hearts = START_HEARTS; history = []; hintCell = null; started = false; seconds = 0;
   stopTimer();
   document.getElementById('timer').textContent = '00:00';
+  applyModeVisibility();
   hideOverlay(); render();
+  if (is3DMode() && !was3D) toast('🎉 進入 3D 模式！');
 }
 function newGame() { score = 0; loadLevel(1); }
 function nextLevel() { loadLevel(level + 1); }
@@ -516,8 +531,14 @@ function flashHint(cell) { hintCell = cell; render(); clearTimeout(hintTimer); h
 
 /* ── 動畫 / UI ── */
 let shakeCellPos = null, popCell = null;
-function shakeCell(r, c) { shakeCellPos = [r, c]; render(); setTimeout(() => { shakeCellPos = null; render(); }, 400); }
-function markPop(r, c) { popCell = [r, c]; setTimeout(() => { popCell = null; render(); }, 320); }
+function shakeCell(r, c) {
+  if (is3DMode()) { shakeCell3D(r, c); return; }
+  shakeCellPos = [r, c]; render(); setTimeout(() => { shakeCellPos = null; render(); }, 400);
+}
+function markPop(r, c) {
+  if (is3DMode()) { pendingPop3D = [r, c]; return; }
+  popCell = [r, c]; setTimeout(() => { popCell = null; render(); }, 320);
+}
 
 function win() {
   stopTimer();
@@ -556,7 +577,9 @@ function celebrate() {
     s.style.top = (Math.random() * 40 + 30) + 'vh';
     s.style.animationDelay = (Math.random() * 0.5) + 's';
     if (Math.random() < 0.6) {
-      const img = document.createElement('img'); img.src = ANIMAL_IMG; img.alt = '';
+      const img = document.createElement('img');
+      img.src = is3DMode() ? ('assets/animals/' + ANIMALS_3D[Math.floor(Math.random() * ANIMALS_3D.length)] + '.png') : ANIMAL_IMG;
+      img.alt = '';
       img.onerror = () => { s.textContent = emojis[Math.floor(Math.random() * emojis.length)]; };
       s.appendChild(img);
     } else {
@@ -592,7 +615,7 @@ function animalElement(pop) {
 
 /* ── 渲染 ── */
 const boardEl = document.getElementById('board');
-function render() {
+function render2D() {
   boardEl.innerHTML = '';
   boardEl.style.gridTemplateColumns = `repeat(${N}, 1fr)`;
   boardEl.style.gridTemplateRows = `repeat(${N}, 1fr)`;
@@ -625,8 +648,11 @@ function render() {
     cell.addEventListener('click', () => onTap(r, c));
     boardEl.appendChild(cell);
   }
+  renderHUD();
+}
+function renderHUD() {
   renderHearts();
-  document.getElementById('level').textContent = `Level ${level} · ${N}×${N}`;
+  document.getElementById('level').textContent = `Level ${level} · ${N}×${N}` + (is3DMode() ? ' · 3D' : '');
   const d = difficultyFor(N);
   document.getElementById('diff').textContent = d;
   document.getElementById('diff').style.color = DIFF_COLOR[d];
@@ -640,6 +666,298 @@ function renderHearts() {
     s.textContent = '❤️';
     if (i < hearts) s.classList.add('on');
     h.appendChild(s);
+  }
+}
+
+/* ════════════════════════════════════════════════════════════════
+   3D 模式 —— level >= 21 用 Three.js（一平面但立體感）
+   ════════════════════════════════════════════════════════════════ */
+function is3DMode() { return level >= THREE_D_LEVEL && !g3dFailed; }
+
+function render() {
+  if (is3DMode()) render3D();
+  else render2D();
+}
+
+function applyModeVisibility() {
+  const is3d = is3DMode();
+  document.getElementById('board-wrap').classList.toggle('hidden', is3d);
+  document.getElementById('board3d').classList.toggle('hidden', !is3d);
+  if (is3d && !g3d) ensure3D();
+}
+
+function ensure3D() {
+  if (g3d || g3dFailed) return !!g3d;
+  if (typeof THREE === 'undefined') { g3dFailed = true; return false; }
+  const container = document.getElementById('board3d');
+  const W = Math.max(280, container.clientWidth);
+  const H = Math.max(280, container.clientHeight);
+
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0xeef2f8);
+
+  const camera = new THREE.PerspectiveCamera(45, W / H, 0.1, 300);
+  const renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.setSize(W, H);
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  container.appendChild(renderer.domElement);
+
+  scene.add(new THREE.AmbientLight(0xffffff, 0.4));
+  scene.add(new THREE.HemisphereLight(0xffffff, 0x9aa7b8, 0.2));
+  const dir = new THREE.DirectionalLight(0xffffff, 0.85);
+  dir.position.set(10, 18, 11);
+  dir.castShadow = true;
+  dir.shadow.mapSize.set(2048, 2048);
+  dir.shadow.camera.left = -20; dir.shadow.camera.right = 20;
+  dir.shadow.camera.top = 20; dir.shadow.camera.bottom = -20;
+  dir.shadow.camera.near = 1; dir.shadow.camera.far = 80;
+  dir.shadow.bias = -0.0005;
+  scene.add(dir);
+
+  const boardGroup = new THREE.Group();
+  scene.add(boardGroup);
+
+  const controls = new THREE.OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true;
+  controls.dampingFactor = 0.08;
+  controls.enablePan = false;
+  controls.maxPolarAngle = Math.PI * 0.49;
+  controls.minPolarAngle = Math.PI * 0.16;
+
+  const texLoader = new THREE.TextureLoader();
+  const animalTex = {};
+  for (const a of ANIMALS_3D) {
+    const t = texLoader.load('assets/animals/' + a + '.png');
+    t.minFilter = THREE.LinearFilter;
+    t.magFilter = THREE.LinearFilter;
+    animalTex[a] = t;
+  }
+
+  g3d = {
+    scene, camera, renderer, controls, boardGroup, animalTex,
+    ray: new THREE.Raycaster(), pointer: new THREE.Vector2(),
+    cellMeshes: [], spriteByCell: {}, pops: [],
+  };
+
+  window.addEventListener('resize', resize3D);
+  bind3DInput(renderer.domElement);
+
+  (function animate() {
+    requestAnimationFrame(animate);
+    controls.update();
+    update3DPops();
+    renderer.render(scene, camera);
+  })();
+
+  return true;
+}
+
+function resize3D() {
+  if (!g3d) return;
+  const container = document.getElementById('board3d');
+  const W = Math.max(280, container.clientWidth);
+  const H = Math.max(280, container.clientHeight);
+  g3d.camera.aspect = W / H;
+  g3d.camera.updateProjectionMatrix();
+  g3d.renderer.setSize(W, H);
+}
+
+function bind3DInput(dom) {
+  let sx = 0, sy = 0, down = false;
+  dom.addEventListener('pointerdown', e => { sx = e.clientX; sy = e.clientY; down = true; });
+  dom.addEventListener('pointerup', e => {
+    if (!down) return;
+    down = false;
+    const dx = e.clientX - sx, dy = e.clientY - sy;
+    if (dx * dx + dy * dy > 36) return;   // 當做 drag/rotate
+    const cell = pickCell3D(e, dom);
+    if (cell) onTap(cell[0], cell[1]);
+  });
+}
+
+function pickCell3D(e, dom) {
+  if (!g3d) return null;
+  const rect = dom.getBoundingClientRect();
+  g3d.pointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+  g3d.pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+  g3d.ray.setFromCamera(g3d.pointer, g3d.camera);
+  const hits = g3d.ray.intersectObjects(g3d.cellMeshes, false);
+  if (!hits.length) return null;
+  const u = hits[0].object.userData;
+  return [u.r, u.c];
+}
+
+function fitCamera3D() {
+  const radius = (N * Math.SQRT2) / 2;
+  const fovRad = g3d.camera.fov * Math.PI / 360;
+  const dist = Math.max((radius / Math.tan(fovRad)) * 1.18, 6);
+  const elev = 37 * Math.PI / 180, azi = 40 * Math.PI / 180;
+  g3d.camera.position.set(
+    dist * Math.cos(elev) * Math.sin(azi),
+    dist * Math.sin(elev),
+    dist * Math.cos(elev) * Math.cos(azi)
+  );
+  g3d.controls.target.set(0, 0, 0);
+  g3d.controls.minDistance = dist * 0.35;
+  g3d.controls.maxDistance = dist * 2.8;
+  g3d.controls.update();
+}
+
+function render3D() {
+  const g = g3d;
+  while (g.boardGroup.children.length) {
+    const ch = g.boardGroup.children[0];
+    g.boardGroup.remove(ch);
+    disposeObj3D(ch);
+  }
+  g.cellMeshes = [];
+  g.spriteByCell = {};
+  g.pops = [];
+
+  const off = (N - 1) / 2;
+  const tileH = 0.16, gap = 0.06;
+
+  const backing = new THREE.Mesh(
+    new THREE.BoxGeometry(N + 0.6, 0.2, N + 0.6),
+    new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.9, metalness: 0 })
+  );
+  backing.position.set(0, -0.1, 0);
+  backing.receiveShadow = true;
+  g.boardGroup.add(backing);
+
+  for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
+    const reg = regionOf[r][c];
+    const col = PALETTE[reg % PALETTE.length];
+    const m = new THREE.Mesh(
+      new THREE.BoxGeometry(1 - gap, tileH, 1 - gap),
+      new THREE.MeshStandardMaterial({ color: new THREE.Color(col), roughness: 0.72, metalness: 0.05 })
+    );
+    m.position.set(c - off, tileH / 2, r - off);
+    m.castShadow = true;
+    m.receiveShadow = true;
+    m.userData = { r, c, reg, base: col };
+    g.boardGroup.add(m);
+    g.cellMeshes.push(m);
+  }
+
+  const bMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.55, metalness: 0 });
+  for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
+    const reg = regionOf[r][c];
+    if (c + 1 < N && regionOf[r][c + 1] !== reg) {
+      const b = new THREE.Mesh(new THREE.BoxGeometry(gap * 1.5, 0.05, 1), bMat);
+      b.position.set(c - off + 0.5, tileH + 0.025, r - off);
+      g.boardGroup.add(b);
+    }
+    if (r + 1 < N && regionOf[r + 1][c] !== reg) {
+      const b = new THREE.Mesh(new THREE.BoxGeometry(1, 0.05, gap * 1.5), bMat);
+      b.position.set(c - off, tileH + 0.025, r - off + 0.5);
+      g.boardGroup.add(b);
+    }
+  }
+
+  animalIdx3D = 0;
+  for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
+    const wx = c - off, wz = r - off;
+    if (board[r][c] === 1) {
+      addAnimal3D(r, c, wx, wz);
+      if (locked[r][c]) addLock3D(wx, wz);
+    } else if (board[r][c] === 2) {
+      addX3D(wx, wz);
+    }
+  }
+
+  if (pendingPop3D) {
+    const s = g.spriteByCell[pendingPop3D[0] + ',' + pendingPop3D[1]];
+    if (s) g.pops.push({ spr: s, t: performance.now(), w: s.scale.x, h: s.scale.y });
+    pendingPop3D = null;
+  }
+
+  fitCamera3D();
+  renderHUD();
+}
+
+function addAnimal3D(r, c, wx, wz) {
+  const kind = ANIMALS_3D[animalIdx3D % ANIMALS_3D.length];
+  animalIdx3D++;
+  const tex = g3d.animalTex[kind];
+  const img = tex.image;
+  let aspect = 1;
+  if (img && img.width && img.height) aspect = img.height / img.width;
+  const bw = 0.72;
+  const bh = Math.min(0.95, Math.max(0.5, bw * aspect));
+
+  const spr = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false }));
+  spr.scale.set(bw, bh, 1);
+  spr.position.set(wx, 0.18 + bh / 2, wz);
+  g3d.boardGroup.add(spr);
+  g3d.spriteByCell[r + ',' + c] = spr;
+
+  const sh = new THREE.Mesh(
+    new THREE.CircleGeometry(bw * 0.5, 24),
+    new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.16, depthWrite: false })
+  );
+  sh.rotation.x = -Math.PI / 2;
+  sh.position.set(wx, 0.185, wz);
+  g3d.boardGroup.add(sh);
+}
+
+function addX3D(wx, wz) {
+  const ov = new THREE.Mesh(
+    new THREE.PlaneGeometry(0.94, 0.94),
+    new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.55, depthWrite: false })
+  );
+  ov.rotation.x = -Math.PI / 2;
+  ov.position.set(wx, 0.19, wz);
+  g3d.boardGroup.add(ov);
+  const xm = new THREE.MeshBasicMaterial({ color: 0x8f969e });
+  const len = 0.58, w = 0.07;
+  const a = new THREE.Mesh(new THREE.BoxGeometry(len, 0.01, w), xm);
+  a.position.set(wx, 0.2, wz); a.rotation.y = Math.PI / 4;
+  g3d.boardGroup.add(a);
+  const b = new THREE.Mesh(new THREE.BoxGeometry(len, 0.01, w), xm);
+  b.position.set(wx, 0.2, wz); b.rotation.y = -Math.PI / 4;
+  g3d.boardGroup.add(b);
+}
+
+function addLock3D(wx, wz) {
+  const lk = new THREE.Mesh(
+    new THREE.BoxGeometry(0.18, 0.14, 0.18),
+    new THREE.MeshStandardMaterial({ color: 0xf5a623, roughness: 0.4, metalness: 0.2 })
+  );
+  lk.position.set(wx + 0.34, 0.23, wz + 0.34);
+  g3d.boardGroup.add(lk);
+}
+
+function shakeCell3D(r, c) {
+  for (const m of g3d.cellMeshes) {
+    if (m.userData.r === r && m.userData.c === c) m.material.color.set(0xe5484d);
+  }
+  setTimeout(() => {
+    for (const m of g3d.cellMeshes) {
+      if (m.userData.r === r && m.userData.c === c) m.material.color.set(m.userData.base);
+    }
+  }, 400);
+}
+
+function update3DPops() {
+  if (!g3d) return;
+  const now = performance.now();
+  for (let i = g3d.pops.length - 1; i >= 0; i--) {
+    const p = g3d.pops[i];
+    const t = (now - p.t) / 320;
+    if (t >= 1) { p.spr.scale.set(p.w, p.h, 1); g3d.pops.splice(i, 1); continue; }
+    const s = 0.3 + 0.7 * (1 - Math.pow(1 - t, 3));
+    p.spr.scale.set(p.w * s, p.h * s, 1);
+  }
+}
+
+function disposeObj3D(obj) {
+  if (obj.geometry) obj.geometry.dispose();
+  if (obj.material) {
+    const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
+    for (const m of mats) m.dispose();
   }
 }
 
@@ -679,6 +997,8 @@ globalThis.__zooqueens = {
   setBoard: b => { board = b.map(r => r.slice()); },
   hearts: () => hearts,
   N: () => N, level: () => level,
+  is3D: () => is3DMode(), g3dReady: () => !!g3d,
+  THREE_D_LEVEL, ANIMALS_3D,
 };
 
 // ── 啟動 ──

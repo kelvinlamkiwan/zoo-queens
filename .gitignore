@@ -1,4 +1,6 @@
 # 測試 / 開發工具
 test_headless.js
+verify_3d.cjs
+verify_*.png
 *.log
 .DS_Store
