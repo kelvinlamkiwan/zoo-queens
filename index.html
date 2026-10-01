@@ -254,6 +254,8 @@ const ANIMAL_IMG = 'animal.png';   // 自訂動物圖（可換成 animal.svg 並
 
 // ── 3D 模式（level >= 21 用 Three.js 渲染）──
 const THREE_D_LEVEL = 21;
+const DIFF_ANIMAL_LEVEL = 15;   // Level >= 15：2D 用唔同動物（Kenney 輪替）
+const CUBE_LEVEL = 25;          // Level >= 25：3D 用六面 cube 視覺
 const ANIMALS_3D = ['elephant','giraffe','hippo','monkey','panda','parrot','penguin','pig','rabbit','snake'];
 
 function nForLevel(level) { return Math.min(4 + (level - 1), 12); }
@@ -270,7 +272,7 @@ let hearts = START_HEARTS, history = [], animalMode = false;
 let score = 0, best = +(localStorage.getItem('zooqueens-best') || 0);
 let hintCell = null, hintTimer = null;
 let seconds = 0, timerInt = null, started = false;
-let g3d = null, g3dFailed = false, pendingPop3D = null, animalIdx3D = 0;
+let g3d = null, g3dFailed = false, pendingPop3D = null, animalIdx3D = 0, baseY3D = 0;
 
 // ── 工具 ──
 function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
@@ -598,10 +600,17 @@ function toast(msg) {
 }
 
 /* ── 動物圖 element（自訂 image + emoji fallback） ── */
-function animalElement(pop) {
+function animalSrcFor(r, c) {
+  if (level >= DIFF_ANIMAL_LEVEL) {
+    const idx = Math.abs((r * 7 + c * 13) % ANIMALS_3D.length);
+    return 'assets/animals/' + ANIMALS_3D[idx] + '.png';
+  }
+  return ANIMAL_IMG;
+}
+function animalElement(r, c, pop) {
   const img = document.createElement('img');
   img.className = 'animal-img' + (pop ? ' pop' : '');
-  img.src = ANIMAL_IMG;
+  img.src = animalSrcFor(r, c);
   img.alt = '';
   img.draggable = false;
   img.onerror = function () {
@@ -636,7 +645,7 @@ function render2D() {
     cell.style.borderRight = sr ? thin : thick;
 
     if (board[r][c] === 1) {
-      cell.appendChild(animalElement(popCell && popCell[0] === r && popCell[1] === c));
+      cell.appendChild(animalElement(r, c, popCell && popCell[0] === r && popCell[1] === c));
       if (locked[r][c]) { const lk = document.createElement('span'); lk.className = 'lock'; lk.textContent = '🔒'; cell.appendChild(lk); }
     } else if (board[r][c] === 2) {
       cell.classList.add('x');
@@ -652,7 +661,7 @@ function render2D() {
 }
 function renderHUD() {
   renderHearts();
-  document.getElementById('level').textContent = `Level ${level} · ${N}×${N}` + (is3DMode() ? ' · 3D' : '');
+  document.getElementById('level').textContent = `Level ${level} · ${N}×${N}` + (isCubeMode() ? ' · 3D Cube' : is3DMode() ? ' · 3D' : '');
   const d = difficultyFor(N);
   document.getElementById('diff').textContent = d;
   document.getElementById('diff').style.color = DIFF_COLOR[d];
@@ -673,6 +682,7 @@ function renderHearts() {
    3D 模式 —— level >= 21 用 Three.js（一平面但立體感）
    ════════════════════════════════════════════════════════════════ */
 function is3DMode() { return level >= THREE_D_LEVEL && !g3dFailed; }
+function isCubeMode() { return level >= CUBE_LEVEL && !g3dFailed; }
 
 function render() {
   if (is3DMode()) render3D();
@@ -790,7 +800,9 @@ function pickCell3D(e, dom) {
 }
 
 function fitCamera3D() {
-  const radius = (N * Math.SQRT2) / 2;
+  const cube = isCubeMode();
+  const S = N + 0.6;
+  const radius = cube ? (S * Math.sqrt(3)) / 2 : (N * Math.SQRT2) / 2;
   const fovRad = g3d.camera.fov * Math.PI / 360;
   const dist = Math.max((radius / Math.tan(fovRad)) * 1.18, 6);
   const elev = 37 * Math.PI / 180, azi = 40 * Math.PI / 180;
@@ -802,6 +814,7 @@ function fitCamera3D() {
   g3d.controls.target.set(0, 0, 0);
   g3d.controls.minDistance = dist * 0.35;
   g3d.controls.maxDistance = dist * 2.8;
+  g3d.controls.maxPolarAngle = cube ? Math.PI * 0.98 : Math.PI * 0.49;
   g3d.controls.update();
 }
 
@@ -818,14 +831,33 @@ function render3D() {
 
   const off = (N - 1) / 2;
   const tileH = 0.16, gap = 0.06;
+  const cube = isCubeMode();
+  const S = N + 0.6;
+  baseY3D = cube ? S / 2 : 0;
 
-  const backing = new THREE.Mesh(
-    new THREE.BoxGeometry(N + 0.6, 0.2, N + 0.6),
-    new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.9, metalness: 0 })
-  );
-  backing.position.set(0, -0.1, 0);
-  backing.receiveShadow = true;
-  g.boardGroup.add(backing);
+  if (cube) {
+    // 六面 cube 底座（棋盤貼喺頂面，可旋轉睇六面）
+    const cubeMesh = new THREE.Mesh(
+      new THREE.BoxGeometry(S, S, S),
+      new THREE.MeshStandardMaterial({ color: 0xf7f9fc, roughness: 0.82, metalness: 0.05 })
+    );
+    cubeMesh.castShadow = true;
+    cubeMesh.receiveShadow = true;
+    g.boardGroup.add(cubeMesh);
+    const edges = new THREE.LineSegments(
+      new THREE.EdgesGeometry(cubeMesh.geometry),
+      new THREE.LineBasicMaterial({ color: 0xc3ccd8 })
+    );
+    g.boardGroup.add(edges);
+  } else {
+    const backing = new THREE.Mesh(
+      new THREE.BoxGeometry(S, 0.2, S),
+      new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.9, metalness: 0 })
+    );
+    backing.position.set(0, -0.1, 0);
+    backing.receiveShadow = true;
+    g.boardGroup.add(backing);
+  }
 
   for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
     const reg = regionOf[r][c];
@@ -834,7 +866,7 @@ function render3D() {
       new THREE.BoxGeometry(1 - gap, tileH, 1 - gap),
       new THREE.MeshStandardMaterial({ color: new THREE.Color(col), roughness: 0.72, metalness: 0.05 })
     );
-    m.position.set(c - off, tileH / 2, r - off);
+    m.position.set(c - off, baseY3D + tileH / 2, r - off);
     m.castShadow = true;
     m.receiveShadow = true;
     m.userData = { r, c, reg, base: col };
@@ -847,12 +879,12 @@ function render3D() {
     const reg = regionOf[r][c];
     if (c + 1 < N && regionOf[r][c + 1] !== reg) {
       const b = new THREE.Mesh(new THREE.BoxGeometry(gap * 1.5, 0.05, 1), bMat);
-      b.position.set(c - off + 0.5, tileH + 0.025, r - off);
+      b.position.set(c - off + 0.5, baseY3D + tileH + 0.025, r - off);
       g.boardGroup.add(b);
     }
     if (r + 1 < N && regionOf[r + 1][c] !== reg) {
       const b = new THREE.Mesh(new THREE.BoxGeometry(1, 0.05, gap * 1.5), bMat);
-      b.position.set(c - off, tileH + 0.025, r - off + 0.5);
+      b.position.set(c - off, baseY3D + tileH + 0.025, r - off + 0.5);
       g.boardGroup.add(b);
     }
   }
@@ -890,7 +922,7 @@ function addAnimal3D(r, c, wx, wz) {
 
   const spr = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false }));
   spr.scale.set(bw, bh, 1);
-  spr.position.set(wx, 0.18 + bh / 2, wz);
+  spr.position.set(wx, baseY3D + 0.18 + bh / 2, wz);
   g3d.boardGroup.add(spr);
   g3d.spriteByCell[r + ',' + c] = spr;
 
@@ -899,7 +931,7 @@ function addAnimal3D(r, c, wx, wz) {
     new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.16, depthWrite: false })
   );
   sh.rotation.x = -Math.PI / 2;
-  sh.position.set(wx, 0.185, wz);
+  sh.position.set(wx, baseY3D + 0.185, wz);
   g3d.boardGroup.add(sh);
 }
 
@@ -909,15 +941,15 @@ function addX3D(wx, wz) {
     new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.55, depthWrite: false })
   );
   ov.rotation.x = -Math.PI / 2;
-  ov.position.set(wx, 0.19, wz);
+  ov.position.set(wx, baseY3D + 0.19, wz);
   g3d.boardGroup.add(ov);
   const xm = new THREE.MeshBasicMaterial({ color: 0x8f969e });
   const len = 0.58, w = 0.07;
   const a = new THREE.Mesh(new THREE.BoxGeometry(len, 0.01, w), xm);
-  a.position.set(wx, 0.2, wz); a.rotation.y = Math.PI / 4;
+  a.position.set(wx, baseY3D + 0.2, wz); a.rotation.y = Math.PI / 4;
   g3d.boardGroup.add(a);
   const b = new THREE.Mesh(new THREE.BoxGeometry(len, 0.01, w), xm);
-  b.position.set(wx, 0.2, wz); b.rotation.y = -Math.PI / 4;
+  b.position.set(wx, baseY3D + 0.2, wz); b.rotation.y = -Math.PI / 4;
   g3d.boardGroup.add(b);
 }
 
@@ -926,7 +958,7 @@ function addLock3D(wx, wz) {
     new THREE.BoxGeometry(0.18, 0.14, 0.18),
     new THREE.MeshStandardMaterial({ color: 0xf5a623, roughness: 0.4, metalness: 0.2 })
   );
-  lk.position.set(wx + 0.34, 0.23, wz + 0.34);
+  lk.position.set(wx + 0.34, baseY3D + 0.23, wz + 0.34);
   g3d.boardGroup.add(lk);
 }
 
@@ -997,8 +1029,8 @@ globalThis.__zooqueens = {
   setBoard: b => { board = b.map(r => r.slice()); },
   hearts: () => hearts,
   N: () => N, level: () => level,
-  is3D: () => is3DMode(), g3dReady: () => !!g3d,
-  THREE_D_LEVEL, ANIMALS_3D,
+  is3D: () => is3DMode(), g3dReady: () => !!g3d, isCube: () => isCubeMode(),
+  THREE_D_LEVEL, DIFF_ANIMAL_LEVEL, CUBE_LEVEL, ANIMALS_3D,
 };
 
 // ── 啟動 ──
