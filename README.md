@@ -1,3 +1,5 @@
+[![DigitalOcean Referral Badge](https://web-platforms.sfo2.digitaloceanspaces.com/WWW/Badge%203.svg)](https://m.do.co/c/00ead228738a)
+
 # Zoo Queens 動物園皇后 🦁
 
 **Zoo Queens** 係一個 Queens / Star Battle 風格嘅邏輯拼圖遊戲。
