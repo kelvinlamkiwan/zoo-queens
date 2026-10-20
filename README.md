@@ -1,10 +1,23 @@
-[![DigitalOcean Referral Badge](https://web-platforms.sfo2.digitaloceanspaces.com/WWW/Badge%203.svg)](https://m.do.co/c/00ead228738a)
-
 # Zoo Queens 動物園皇后 🦁
 
 **Zoo Queens** 係一個 Queens / Star Battle 風格嘅邏輯拼圖遊戲。
 
 喺 N×N 棋盤上，棋盤被分成 N 個彩色區域。你要喺**每個區域、每一行、每一列各放一隻動物**，而且**動物與動物唔可以相鄰（包括斜角）**。
+
+## 遊戲選單（多遊戲）
+
+開啟後先進入**遊戲選單**，揀一個遊戲：
+
+| 遊戲 | 玩法 |
+|------|------|
+| 🦁 **Queens 皇后** | 原版：每區/行/列放一隻動物，8 方向唔相鄰 |
+| 🔢 **Sudoku 數獨** | 9×9 填 1–9，每行/列/3×3 宮唔重複（唯一解生成器） |
+| 💣 **Minesweeper 踩地雷** | 揭開所有非地雷格，右鍵標旗（首擊保證安全） |
+| 🐍 **Snake 貪食蛇** | 食蘋果長大，方向鍵/滑動控制，唔好撞牆撞自己 |
+| 🎲 **2048** | 方向鍵/滑動合併相同數字，衝上 2048 |
+
+- 直接開指定遊戲：`index.html?game=sudoku`、`?game=minesweeper`、`?game=snake`、`?game=c2048`
+- 遊戲中撳「🏠 選單」返去選單
 
 ## 玩法
 
@@ -34,14 +47,12 @@
 
 直接用 browser 開 `index.html` 就得，零依賴、零 build step。
 
-### 直接跳關（試 3D / cube）
+### 直接跳關（試 3D）
 
 喺 URL 加參數即可跳去指定關卡，唔使玩到咁後：
 
-- `index.html?level=25` → 直接開 Level 25（3D cube 六面）
 - `index.html?level=21` → 直接開 Level 21（3D flat plane）
-- `index.html#25`（hash 都得，但要全新載入先生效）
-- `index.html?level=25&hard=1` → 開 Level 25 + 困難模式（六面跨面相鄰）
+- `index.html#21`（hash 都得，但要全新載入先生效）
 
 ## 自訂動物圖
 
