@@ -150,9 +150,112 @@
 
   .toast { position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%); background: rgba(74,63,70,.92); color: #fff; padding: 11px 20px; border-radius: 13px; font-size: 13px; opacity: 0; transition: opacity .25s; pointer-events: none; z-index: 70; }
   .toast.show { opacity: 1; }
+
+  /* ── 遊戲選單 ── */
+  .menu {
+    position: fixed; inset: 0; z-index: 40; padding: 20px;
+    background: linear-gradient(160deg, var(--page1), var(--page2));
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+  }
+  .menu.hidden { display: none; }
+  .menu .mascot { font-size: 52px; animation: bob 3s ease-in-out infinite; }
+  .menu h1 { font-size: 28px; margin: 6px 0 2px; }
+  .menu-sub { color: var(--muted); font-size: 14px; margin-bottom: 28px; }
+  .menu-grid { display: flex; flex-wrap: wrap; gap: 16px; justify-content: center; }
+  .menu-card {
+    background: #fff; border: none; border-radius: 22px; padding: 26px 20px; width: 148px;
+    text-align: center; cursor: pointer; font-family: inherit;
+    box-shadow: 0 10px 28px rgba(169,139,152,.22); transition: transform .15s, box-shadow .15s;
+  }
+  .menu-card:hover { transform: translateY(-4px); box-shadow: 0 16px 34px rgba(169,139,152,.32); }
+  .menu-card:active { transform: scale(.95); }
+  .menu-card .m-emoji { font-size: 46px; display: block; margin-bottom: 10px; }
+  .menu-card .m-name { font-size: 16px; font-weight: 800; }
+  .menu-card .m-desc { font-size: 11.5px; color: var(--muted); margin-top: 6px; line-height: 1.5; }
+
+  /* ── Sudoku 數獨 ── */
+  .sudoku-cell.given .num { color: #1f2430; font-weight: 800; }
+  .sudoku-cell.filled .num { color: var(--accent-dark); font-weight: 700; }
+  .sudoku-cell.selected { outline: 3px solid var(--accent); outline-offset: -2px; z-index: 1; }
+  .sudoku-cell.same-num { background: rgba(74,144,217,.20) !important; }
+  .sudoku-cell.wrong .num { color: var(--wrong) !important; }
+  .sudoku-cell .num { font-size: clamp(17px, 5.2vw, 29px); font-weight: 700; }
+  .numpad { display: flex; gap: 6px; margin-top: 14px; flex-wrap: wrap; justify-content: center; }
+  .numpad button {
+    width: 40px; height: 40px; border: none; border-radius: 11px; background: #fff;
+    font-size: 18px; font-weight: 800; cursor: pointer; font-family: inherit; color: var(--text);
+    box-shadow: 0 2px 8px rgba(0,0,0,.08);
+  }
+  .numpad button:active { transform: scale(.9); }
+  .numpad button.erase { width: auto; padding: 0 14px; font-size: 14px; }
+
+  /* ── Minesweeper 踩地雷 ── */
+  .ms-cell { border: 1px solid #d7dce5 !important; background: #e9edf4 !important; }
+  .ms-cell.revealed { background: #fff !important; cursor: default; }
+  .ms-cell.mine-hit { background: var(--wrong) !important; }
+  .ms-cell .num, .ms-cell .ms-flag, .ms-cell .ms-mine { font-size: clamp(14px, 4.4vw, 22px); font-weight: 800; }
+  .num-1 { color: #4a90d9; } .num-2 { color: #4caf50; } .num-3 { color: #e5484d; }
+  .num-4 { color: #3f51b5; } .num-5 { color: #9b59b6; } .num-6 { color: #00bcd4; }
+  .num-7 { color: #1f2430; } .num-8 { color: #6b7280; }
+
+  /* ── Snake 貪食蛇 ── */
+  .snake-cell { background: #eef1f6 !important; border: 1px solid #e2e7ef !important; }
+  .snake-cell.head { background: #2f6fb8 !important; }
+  .snake-cell.body { background: #4a90d9 !important; }
+  .snake-cell.food { background: #ffe3e0 !important; }
+  .snake-cell.food .snake-food { font-size: clamp(11px, 3.4vw, 17px); }
+
+  /* ── 2048 ── */
+  .c2048-cell { background: #cdc1b4 !important; border: 1px solid #bbada0 !important; }
+  .c2048-tile { width: 90%; height: 90%; border-radius: 7px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: clamp(15px, 4.6vw, 26px); animation: pop .15s ease-out; }
+  .tile-2 { background: #eee4da; color: #776e65; }
+  .tile-4 { background: #ede0c8; color: #776e65; }
+  .tile-8 { background: #f2b179; color: #fff; }
+  .tile-16 { background: #f59563; color: #fff; }
+  .tile-32 { background: #f67c5f; color: #fff; }
+  .tile-64 { background: #f65e3b; color: #fff; }
+  .tile-128 { background: #edcf72; color: #fff; }
+  .tile-256 { background: #edcc61; color: #fff; }
+  .tile-512 { background: #edc850; color: #fff; }
+  .tile-1024 { background: #edc53f; color: #fff; }
+  .tile-2048 { background: #edc22e; color: #fff; }
+  .tile-super { background: #3c3a32; color: #fff; }
 </style>
 </head>
 <body>
+  <div class="menu" id="menu">
+    <span class="mascot">🦁</span>
+    <h1>Zoo Queens <span class="pink">邏輯遊戲樂園</span></h1>
+    <div class="menu-sub">揀一個遊戲開始玩！</div>
+    <div class="menu-grid">
+      <button class="menu-card" data-game="queens">
+        <span class="m-emoji">🦁</span>
+        <div class="m-name">Queens 皇后</div>
+        <div class="m-desc">每區、每行、每列放一隻動物，8 方向唔可以相鄰</div>
+      </button>
+      <button class="menu-card" data-game="sudoku">
+        <span class="m-emoji">🔢</span>
+        <div class="m-name">Sudoku 數獨</div>
+        <div class="m-desc">9×9 填 1–9，每行、每列、每宮都唔重複</div>
+      </button>
+      <button class="menu-card" data-game="minesweeper">
+        <span class="m-emoji">💣</span>
+        <div class="m-name">Minesweeper 踩地雷</div>
+        <div class="m-desc">搵出所有地雷，唔好踩中</div>
+      </button>
+      <button class="menu-card" data-game="snake">
+        <span class="m-emoji">🐍</span>
+        <div class="m-name">Snake 貪食蛇</div>
+        <div class="m-desc">食蘋果長大，唔好撞牆撞自己</div>
+      </button>
+      <button class="menu-card" data-game="c2048">
+        <span class="m-emoji">🎲</span>
+        <div class="m-name">2048</div>
+        <div class="m-desc">合併相同數字，衝上 2048</div>
+      </button>
+    </div>
+  </div>
+
   <header>
     <span class="mascot" id="mascot">🦁</span>
     <h1>Zoo Queens <span class="pink">動物園皇后</span></h1>
@@ -208,10 +311,12 @@
   <div id="board3d" class="board3d hidden"></div>
 
   <div class="controls">
+    <button class="btn" id="menuBtn">🏠 選單</button>
     <button class="btn" id="undo">↩️ 復原</button>
     <button class="btn" id="reset">🔄 重設</button>
-    <button class="btn" id="hard" title="切換難度（只影響 3D cube 六面）">🧩 一般</button>
   </div>
+
+  <div class="numpad hidden" id="numpad"></div>
 
   <div class="donate">
     <div class="d-title">☕ 鍾意 Zoo Queens？</div>
@@ -256,7 +361,6 @@ const ANIMAL_IMG = 'animal.png';   // 自訂動物圖（可換成 animal.svg 並
 // ── 3D 模式（level >= 21 用 Three.js 渲染）──
 const THREE_D_LEVEL = 21;
 const DIFF_ANIMAL_LEVEL = 15;   // Level >= 15：2D 用唔同動物（Kenney 輪替）
-const CUBE_LEVEL = 25;          // Level >= 25：3D 用六面 cube 視覺
 const ANIMALS_3D = ['elephant','giraffe','hippo','monkey','panda','parrot','penguin','pig','rabbit','snake'];
 
 function nForLevel(level) { return Math.min(4 + (level - 1), 12); }
@@ -274,7 +378,6 @@ let score = 0, best = +(localStorage.getItem('zooqueens-best') || 0);
 let hintCell = null, hintTimer = null;
 let seconds = 0, timerInt = null, started = false;
 let g3d = null, g3dFailed = false, pendingPop3D = null, animalIdx3D = 0, baseY3D = 0;
-let cubeN = 4, cubeFaces = [], cubeHistory = [], hardMode = false;
 
 // ── 工具 ──
 function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
@@ -419,44 +522,21 @@ function generateLevel(n, starterCount) {
    ════════════════════════════════════════════════════════════════ */
 function loadLevel(lv) {
   const was3D = is3DMode();
-  const wasCube = isCubeMode();
   level = lv;
   N = nForLevel(level);
-  if (isCubeMode()) {
-    if (!generateCubeLevel()) return;
-  } else {
-    const g = generateLevel(N, 0);
-    if (!g) { toast('生成失敗，重試中…'); loadLevel(lv); return; }
-    regionOf = g.regionOf; regionCells = g.regionCells; solution = g.solution; starters = g.starters;
-    board = Array.from({ length: N }, () => Array(N).fill(0));
-    locked = Array.from({ length: N }, () => Array(N).fill(false));
-    for (const [r, c] of starters) { board[r][c] = 1; locked[r][c] = true; }
-  }
-  hearts = START_HEARTS; history = []; cubeHistory = []; hintCell = null; started = false; seconds = 0;
+  const g = generateLevel(N, 0);
+  if (!g) { toast('生成失敗，重試中…'); loadLevel(lv); return; }
+  regionOf = g.regionOf; regionCells = g.regionCells; solution = g.solution; starters = g.starters;
+  board = Array.from({ length: N }, () => Array(N).fill(0));
+  locked = Array.from({ length: N }, () => Array(N).fill(false));
+  for (const [r, c] of starters) { board[r][c] = 1; locked[r][c] = true; }
+  hearts = START_HEARTS; history = []; hintCell = null; started = false; seconds = 0;
   stopTimer();
   document.getElementById('timer').textContent = '00:00';
   applyModeVisibility();
-  if (isCubeMode() && g3d) fitCameraCube();
-  else if (is3DMode() && g3d) fitCamera3D();
+  if (is3DMode() && g3d) fitCamera3D();
   hideOverlay(); render();
-  if (isCubeMode() && !wasCube) toast('🎉 進入 3D Cube 六面模式！');
-  else if (is3DMode() && !was3D) toast('🎉 進入 3D 模式！');
-}
-function generateCubeLevel() {
-  cubeN = Math.min(4 + Math.floor((level - 25) / 3), 6);   // L25→4, L28→5, L31+→6
-  if (hardMode) return generateCubeHardLevel();
-  cubeFaces = [];
-  for (let f = 0; f < 6; f++) {
-    let g = null;
-    for (let a = 0; a < 30 && !g; a++) g = generateLevel(cubeN, 0);
-    if (!g) { toast('六面生成失敗，重試中…'); loadLevel(level); return false; }
-    cubeFaces.push({
-      regionOf: g.regionOf, regionCells: g.regionCells, solution: g.solution,
-      board: Array.from({ length: cubeN }, () => Array(cubeN).fill(0)),
-      locked: Array.from({ length: cubeN }, () => Array(cubeN).fill(false)),
-    });
-  }
-  return true;
+  if (is3DMode() && !was3D) toast('🎉 進入 3D 模式！');
 }
 function newGame() { score = 0; loadLevel(1); }
 function nextLevel() { loadLevel(level + 1); }
@@ -468,12 +548,6 @@ function stopTimer() { if (timerInt) { clearInterval(timerInt); timerInt = null;
 
 function pushHistory() { history.push(board.map(r => r.slice())); if (history.length > 500) history.shift(); }
 function undo() {
-  if (isCubeMode()) {
-    if (!cubeHistory.length) return;
-    const prev = cubeHistory.pop();
-    cubeFaces.forEach((f, i) => { f.board = prev[i].board; });
-    renderCube(); return;
-  }
   if (!history.length) return;
   board = history.pop(); render();
 }
@@ -582,12 +656,10 @@ function markPop(r, c) {
 function win() {
   stopTimer();
   const timeBonus = Math.max(0, 300 - seconds);
-  const total = isCubeMode() ? 6 * cubeN : N;
-  const gained = total * 100 + hearts * 50 + timeBonus;
+  const gained = N * 100 + hearts * 50 + timeBonus;
   score += gained;
   if (score > best) { best = score; localStorage.setItem('zooqueens-best', best); }
-  const title = isCubeMode() ? '六面全部解完！' : '全部動物返咗屋企！';
-  showOverlay('🎉', title, `第 ${level} 關完成 +${gained} 分（用咗 ${document.getElementById('timer').textContent}）。`,
+  showOverlay('🎉', '全部動物返咗屋企！', `第 ${level} 關完成 +${gained} 分（用咗 ${document.getElementById('timer').textContent}）。`,
     [['▶️ 下一關', nextLevel, ''], ['🔄 再玩一次', resetLevel, 'ghost']]);
   celebrate();
 }
@@ -700,27 +772,12 @@ function render2D() {
 }
 function renderHUD() {
   renderHearts();
-  if (isCubeMode()) {
-    const done = cubeFaces.filter(f => {
-      let c = 0; for (const row of f.board) for (const v of row) if (v === 1) c++;
-      return c === cubeN;
-    }).length;
-    document.getElementById('level').textContent = `Level ${level} · Cube ${done}/6`;
-    document.getElementById('diff').textContent = `${cubeN}×${cubeN}` + (hardMode ? ' 困難' : '');
-    document.getElementById('diff').style.color = hardMode ? '#e5484d' : '#4a90d9';
-  } else {
-    document.getElementById('level').textContent = `Level ${level} · ${N}×${N}` + (is3DMode() ? ' · 3D' : '');
-    const d = difficultyFor(N);
-    document.getElementById('diff').textContent = d;
-    document.getElementById('diff').style.color = DIFF_COLOR[d];
-  }
+  document.getElementById('level').textContent = `Level ${level} · ${N}×${N}` + (is3DMode() ? ' · 3D' : '');
+  const d = difficultyFor(N);
+  document.getElementById('diff').textContent = d;
+  document.getElementById('diff').style.color = DIFF_COLOR[d];
   document.getElementById('score').textContent = score;
   document.getElementById('best').textContent = best;
-  const hardBtn = document.getElementById('hard');
-  if (hardBtn) {
-    hardBtn.style.display = isCubeMode() ? '' : 'none';
-    hardBtn.textContent = hardMode ? '🧩 困難' : '🧩 一般';
-  }
 }
 function renderHearts() {
   const h = document.getElementById('hearts'); h.innerHTML = '';
@@ -736,11 +793,9 @@ function renderHearts() {
    3D 模式 —— level >= 21 用 Three.js（一平面但立體感）
    ════════════════════════════════════════════════════════════════ */
 function is3DMode() { return level >= THREE_D_LEVEL && !g3dFailed; }
-function isCubeMode() { return level >= CUBE_LEVEL && !g3dFailed; }
 
 function render() {
-  if (isCubeMode()) renderCube();
-  else if (is3DMode()) render3D();
+  if (is3DMode()) render3D();
   else render2D();
 }
 
@@ -839,8 +894,7 @@ function bind3DInput(dom) {
     if (dx * dx + dy * dy > 36) return;   // 當做 drag/rotate
     const cell = pickCell3D(e, dom);
     if (!cell) return;
-    if (isCubeMode()) onTapCube(cell.face, cell.r, cell.c);
-    else onTap(cell.r, cell.c);
+    onTap(cell.r, cell.c);
   });
 }
 
@@ -850,12 +904,10 @@ function pickCell3D(e, dom) {
   g3d.pointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
   g3d.pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
   g3d.ray.setFromCamera(g3d.pointer, g3d.camera);
-  const targets = g3d.cubeBody ? [g3d.cubeBody].concat(g3d.cellMeshes) : g3d.cellMeshes;
-  const hits = g3d.ray.intersectObjects(targets, false);
+  const hits = g3d.ray.intersectObjects(g3d.cellMeshes, false);
   if (!hits.length) return null;
-  if (hits[0].object === g3d.cubeBody) return null;   // 射中 cube body（格仔 gap）
   const u = hits[0].object.userData;
-  return { face: (u.face === undefined ? -1 : u.face), r: u.r, c: u.c };
+  return { r: u.r, c: u.c };
 }
 
 function fitCamera3D() {
@@ -890,7 +942,6 @@ function render3D() {
   const tileH = 0.16, gap = 0.06;
   const S = N + 0.6;
   baseY3D = 0;
-  g.cubeBody = null;
 
   const backing = new THREE.Mesh(
     new THREE.BoxGeometry(S, 0.2, S),
@@ -1033,326 +1084,6 @@ function disposeObj3D(obj) {
   }
 }
 
-/* ════════════════════════════════════════════════════════════════
-   Cube 六面模式 —— level >= 25：六面各自一個 Queens 棋盤
-   ════════════════════════════════════════════════════════════════ */
-const CUBE_FACE_DEFS = [
-  { rot: [0, 0, 0],            pos: [0, 0, 1] },   // front +Z
-  { rot: [0, Math.PI, 0],      pos: [0, 0, -1] },  // back  -Z
-  { rot: [-Math.PI / 2, 0, 0], pos: [0, 1, 0] },   // top   +Y
-  { rot: [Math.PI / 2, 0, 0],  pos: [0, -1, 0] },  // bottom -Y
-  { rot: [0, Math.PI / 2, 0],  pos: [1, 0, 0] },   // right +X
-  { rot: [0, -Math.PI / 2, 0], pos: [-1, 0, 0] },  // left  -X
-];
-
-/* ── 跨面相鄰（困難模式）── */
-function cellWorld(f, r, c) {
-  const off = (cubeN - 1) / 2;
-  const u = c - off, v = r - off;
-  const H = (cubeN + 0.6) / 2;
-  switch (f) {
-    case 0: return { x: u, y: v, z: H };      // front +Z
-    case 1: return { x: -u, y: v, z: -H };    // back  -Z
-    case 2: return { x: u, y: H, z: -v };     // top   +Y
-    case 3: return { x: u, y: -H, z: v };     // bottom -Y
-    case 4: return { x: H, y: v, z: -u };     // right +X
-    case 5: return { x: -H, y: v, z: u };     // left  -X
-  }
-  return { x: 0, y: 0, z: 0 };
-}
-function crossFaceAdjacent(f1, r1, c1, f2, r2, c2) {
-  if (f1 === f2) return false;
-  const a = cellWorld(f1, r1, c1), b = cellWorld(f2, r2, c2);
-  return Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z) < 1.3;
-}
-function enumerateQueens(n) {
-  const sols = [];
-  const cols = new Set();
-  const placed = [];
-  function bt(row) {
-    if (row === n) { sols.push(placed.slice()); return; }
-    for (let c = 0; c < n; c++) {
-      if (cols.has(c)) continue;
-      let ok = true;
-      for (const [pr, pc] of placed) if (Math.abs(pr - row) <= 1 && Math.abs(pc - c) <= 1) { ok = false; break; }
-      if (!ok) continue;
-      cols.add(c); placed.push([row, c]);
-      bt(row + 1);
-      cols.delete(c); placed.pop();
-    }
-  }
-  bt(0);
-  return sols;
-}
-function solveCubePlacement() {
-  const perFace = [];
-  for (let f = 0; f < 6; f++) {
-    const sols = enumerateQueens(cubeN);
-    if (!sols.length) return null;
-    perFace.push(sols);
-  }
-  const chosen = new Array(6).fill(-1);
-  const crossConflict = (f, solA, g, solB) => {
-    for (const [ra, ca] of solA) for (const [rb, cb] of solB) {
-      if (crossFaceAdjacent(f, ra, ca, g, rb, cb)) return true;
-    }
-    return false;
-  };
-  function bt(f) {
-    if (f === 6) return true;
-    for (let i = 0; i < perFace[f].length; i++) {
-      const sol = perFace[f][i];
-      let ok = true;
-      for (let g = 0; g < f; g++) if (crossConflict(f, sol, g, perFace[g][chosen[g]])) { ok = false; break; }
-      if (!ok) continue;
-      chosen[f] = i;
-      if (bt(f + 1)) return true;
-      chosen[f] = -1;
-    }
-    return false;
-  }
-  if (!bt(0)) return null;
-  return chosen.map((idx, f) => perFace[f][idx]);
-}
-function generateCubeHardLevel() {
-  cubeN = Math.min(4 + Math.floor((level - 25) / 3), 6);
-  for (let attempt = 0; attempt < 40; attempt++) {
-    const placement = solveCubePlacement();
-    if (!placement) break;
-    const faces = [];
-    let ok = true;
-    for (let f = 0; f < 6; f++) {
-      const sol = placement[f];
-      const { regionOf, regionCells } = generateRegions(cubeN, sol);
-      // 規則：size-1（單格）區域最多 1 個
-      if (regionCells.filter(c => c.length === 1).length > 1) { ok = false; break; }
-      const r = findSolutions(cubeN, regionOf, regionCells, [], new Set(), 2, NODE_LIMIT);
-      if (r.aborted || r.solutions.length !== 1) { ok = false; break; }
-      faces.push({
-        regionOf, regionCells, solution: sol,
-        board: Array.from({ length: cubeN }, () => Array(cubeN).fill(0)),
-        locked: Array.from({ length: cubeN }, () => Array(cubeN).fill(false)),
-      });
-    }
-    if (ok) { cubeFaces = faces; return true; }
-  }
-  toast('困難六面生成失敗，重試中…'); loadLevel(level); return false;
-}
-
-function cubeHasCat(f, r, c) {
-  const face = cubeFaces[f], b = face.board;
-  for (let cc = 0; cc < cubeN; cc++) if (b[r][cc] === 1) return true;
-  for (let rr = 0; rr < cubeN; rr++) if (b[rr][c] === 1) return true;
-  const reg = face.regionOf[r][c];
-  for (const [rr, cc] of face.regionCells[reg]) if (b[rr][cc] === 1) return true;
-  for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) {
-    if (!dr && !dc) continue;
-    const nr = r + dr, nc = c + dc;
-    if (nr >= 0 && nr < cubeN && nc >= 0 && nc < cubeN && b[nr][nc] === 1) return true;
-  }
-  if (hardMode) {
-    for (let f2 = 0; f2 < 6; f2++) {
-      if (f2 === f) continue;
-      const b2 = cubeFaces[f2].board;
-      for (let r2 = 0; r2 < cubeN; r2++) for (let c2 = 0; c2 < cubeN; c2++) {
-        if (b2[r2][c2] === 1 && crossFaceAdjacent(f, r, c, f2, r2, c2)) return true;
-      }
-    }
-  }
-  return false;
-}
-function cubePlaceCat(f, r, c) {
-  const face = cubeFaces[f];
-  if (face.board[r][c] === 1) return;
-  const hadX = face.board[r][c] === 2;
-  if (hadX) face.board[r][c] = 0;
-  if (cubeHasCat(f, r, c)) {
-    if (hadX) face.board[r][c] = 2;
-    shakeCube(f, r, c); loseHeart(); return;
-  }
-  pushCubeHistory();
-  face.board[r][c] = 1;
-  renderCube();
-  const s = g3d.spriteByCell[f + ',' + r + ',' + c];
-  if (s) g3d.pops.push({ spr: s, t: performance.now(), w: s.scale.x, h: s.scale.y });
-  if (cubeIsWon()) win();
-}
-function cubeRemoveCat(f, r, c) {
-  const face = cubeFaces[f];
-  if (face.board[r][c] !== 1 || face.locked[r][c]) return;
-  pushCubeHistory();
-  face.board[r][c] = 0;
-  renderCube();
-}
-function cubeToggleX(f, r, c) {
-  const face = cubeFaces[f];
-  if (face.board[r][c] === 1) return;
-  pushCubeHistory();
-  face.board[r][c] = face.board[r][c] === 2 ? 0 : 2;
-  renderCube();
-}
-function cubeIsWon() {
-  return cubeFaces.every(f => {
-    let c = 0;
-    for (const row of f.board) for (const v of row) if (v === 1) c++;
-    return c === cubeN;
-  });
-}
-function pushCubeHistory() {
-  cubeHistory.push(cubeFaces.map(f => ({ board: f.board.map(r => r.slice()) })));
-  if (cubeHistory.length > 300) cubeHistory.shift();
-}
-function onTapCube(f, r, c) {
-  if (cubeFaces[f].locked[r][c]) return;
-  touch();
-  if (tapTimer) {
-    clearTimeout(tapTimer); tapTimer = null;
-    if (cubeFaces[f].board[r][c] === 1) cubeRemoveCat(f, r, c);
-    else cubePlaceCat(f, r, c);
-  } else {
-    tapTimer = setTimeout(() => { tapTimer = null; cubeToggleX(f, r, c); }, 250);
-  }
-}
-function shakeCube(f, r, c) {
-  for (const m of g3d.cellMeshes) {
-    if (m.userData.face === f && m.userData.r === r && m.userData.c === c) m.material.color.set(0xe5484d);
-  }
-  setTimeout(() => {
-    for (const m of g3d.cellMeshes) {
-      if (m.userData.face === f && m.userData.r === r && m.userData.c === c) m.material.color.set(m.userData.base);
-    }
-  }, 400);
-}
-
-function renderCube() {
-  const g = g3d;
-  while (g.boardGroup.children.length) {
-    const ch = g.boardGroup.children[0];
-    g.boardGroup.remove(ch);
-    disposeObj3D(ch);
-  }
-  g.cellMeshes = [];
-  g.spriteByCell = {};
-  g.pops = [];
-
-  const S = cubeN + 0.6;
-  const gap = 0.06;
-  const off = (cubeN - 1) / 2;
-
-  // cube 六面 body + 邊緣線
-  const cubeMesh = new THREE.Mesh(
-    new THREE.BoxGeometry(S, S, S),
-    new THREE.MeshStandardMaterial({ color: 0xf7f9fc, roughness: 0.82, metalness: 0.05 })
-  );
-  g.boardGroup.add(cubeMesh);
-  g.cubeBody = cubeMesh;
-  g.boardGroup.add(new THREE.LineSegments(
-    new THREE.EdgesGeometry(cubeMesh.geometry),
-    new THREE.LineBasicMaterial({ color: 0xc3ccd8 })
-  ));
-
-  animalIdx3D = 0;
-  for (let f = 0; f < 6; f++) {
-    const def = CUBE_FACE_DEFS[f];
-    const face = cubeFaces[f];
-    const grp = new THREE.Group();
-    grp.rotation.set(def.rot[0], def.rot[1], def.rot[2]);
-    grp.position.set(def.pos[0] * S / 2, def.pos[1] * S / 2, def.pos[2] * S / 2);
-    g.boardGroup.add(grp);
-
-    for (let r = 0; r < cubeN; r++) for (let c = 0; c < cubeN; c++) {
-      const reg = face.regionOf[r][c];
-      const col = PALETTE[reg % PALETTE.length];
-      const u = c - off, v = r - off;
-      const m = new THREE.Mesh(
-        new THREE.PlaneGeometry(1 - gap, 1 - gap),
-        new THREE.MeshStandardMaterial({ color: new THREE.Color(col), roughness: 0.72, metalness: 0.05 })
-      );
-      m.position.set(u, v, 0.012);
-      m.userData = { face: f, r, c, base: col };
-      grp.add(m);
-      g.cellMeshes.push(m);
-    }
-
-    // 區域邊界白線（面內，唔同 region 之間）
-    const bMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
-    for (let r = 0; r < cubeN; r++) for (let c = 0; c < cubeN; c++) {
-      const reg = face.regionOf[r][c];
-      const u = c - off, v = r - off;
-      if (c + 1 < cubeN && face.regionOf[r][c + 1] !== reg) {
-        const b = new THREE.Mesh(new THREE.PlaneGeometry(gap * 1.6, 1), bMat);
-        b.position.set(u + 0.5, v, 0.02);
-        grp.add(b);
-      }
-      if (r + 1 < cubeN && face.regionOf[r + 1][c] !== reg) {
-        const b = new THREE.Mesh(new THREE.PlaneGeometry(1, gap * 1.6), bMat);
-        b.position.set(u, v + 0.5, 0.02);
-        grp.add(b);
-      }
-    }
-
-    // 動物 / ✕
-    for (let r = 0; r < cubeN; r++) for (let c = 0; c < cubeN; c++) {
-      const u = c - off, v = r - off;
-      if (face.board[r][c] === 1) addCubeAnimal(grp, f, r, c, u, v);
-      else if (face.board[r][c] === 2) addCubeX(grp, u, v);
-    }
-  }
-
-  renderHUD();
-}
-
-function addCubeAnimal(grp, f, r, c, u, v) {
-  const kind = ANIMALS_3D[animalIdx3D % ANIMALS_3D.length];
-  animalIdx3D++;
-  const tex = g3d.animalTex[kind];
-  const img = tex.image;
-  let aspect = 1;
-  if (img && img.width && img.height) aspect = img.height / img.width;
-  const bw = 0.7;
-  const bh = Math.min(0.9, Math.max(0.45, bw * aspect));
-  const spr = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false }));
-  spr.scale.set(bw, bh, 1);
-  spr.position.set(u, v, 0.2 + bh / 2);
-  grp.add(spr);
-  g3d.spriteByCell[f + ',' + r + ',' + c] = spr;
-}
-
-function addCubeX(grp, u, v) {
-  const ov = new THREE.Mesh(
-    new THREE.PlaneGeometry(0.94, 0.94),
-    new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.55, depthWrite: false })
-  );
-  ov.position.set(u, v, 0.03);
-  grp.add(ov);
-  const xm = new THREE.MeshBasicMaterial({ color: 0x8f969e });
-  const len = 0.58, w = 0.07;
-  const a = new THREE.Mesh(new THREE.PlaneGeometry(len, w), xm);
-  a.position.set(u, v, 0.035); a.rotation.z = Math.PI / 4;
-  grp.add(a);
-  const b = new THREE.Mesh(new THREE.PlaneGeometry(len, w), xm);
-  b.position.set(u, v, 0.035); b.rotation.z = -Math.PI / 4;
-  grp.add(b);
-}
-
-function fitCameraCube() {
-  const S = cubeN + 0.6;
-  const radius = (S * Math.sqrt(3)) / 2;
-  const fovRad = g3d.camera.fov * Math.PI / 360;
-  const dist = Math.max((radius / Math.tan(fovRad)) * 1.25, 6);
-  const elev = 30 * Math.PI / 180, azi = 40 * Math.PI / 180;
-  g3d.camera.position.set(
-    dist * Math.cos(elev) * Math.sin(azi),
-    dist * Math.sin(elev),
-    dist * Math.cos(elev) * Math.cos(azi)
-  );
-  g3d.controls.target.set(0, 0, 0);
-  g3d.controls.minDistance = dist * 0.5;
-  g3d.controls.maxDistance = dist * 3.5;
-  g3d.controls.maxPolarAngle = Math.PI;
-  g3d.controls.update();
-}
-
 /* ── 輸入 ── */
 let tapTimer = null;
 function onTap(r, c) {
@@ -1375,11 +1106,12 @@ function onTap(r, c) {
 
 /* ── 按鈕 ── */
 document.getElementById('undo').addEventListener('click', undo);
-document.getElementById('reset').addEventListener('click', resetLevel);
-document.getElementById('hard').addEventListener('click', () => {
-  hardMode = !hardMode;
-  loadLevel(level);
-  toast(hardMode ? '🧩 困難：六面跨面相鄰' : '🧩 一般：六面獨立');
+document.getElementById('reset').addEventListener('click', () => {
+  if (currentGame === 'sudoku') sudokuNew();
+  else if (currentGame === 'minesweeper') msNew();
+  else if (currentGame === 'snake') snakeNew();
+  else if (currentGame === 'c2048') c2048New();
+  else resetLevel();
 });
 
 /* ── 測試 API（headless） ── */
@@ -1394,17 +1126,597 @@ globalThis.__zooqueens = {
   setBoard: b => { board = b.map(r => r.slice()); },
   hearts: () => hearts,
   N: () => N, level: () => level,
-  is3D: () => is3DMode(), g3dReady: () => !!g3d, isCube: () => isCubeMode(),
-  THREE_D_LEVEL, DIFF_ANIMAL_LEVEL, CUBE_LEVEL, ANIMALS_3D,
-  cubeN: () => cubeN,
-  cubeFaces: () => cubeFaces.map(f => ({ board: f.board.map(r => r.slice()), regionOf: f.regionOf.map(r => r.slice()), solution: f.solution.map(x => x.slice()) })),
-  cubePlaceCat, cubeIsWon,
-  hardMode: () => hardMode, crossFaceAdjacent, solveCubePlacement,
+  is3D: () => is3DMode(), g3dReady: () => !!g3d,
+  THREE_D_LEVEL, DIFF_ANIMAL_LEVEL, ANIMALS_3D,
+  // 新遊戲（Sudoku / Minesweeper）
+  currentGame: () => currentGame, startGame, backToMenu,
+  sudoGenerate, sudoSolve, sudoCountSolutions, sudoBoxOk, sudokuNew, sudokuInput, sudoIsWon,
+  sudoGrid: () => sudoGrid.map(r => r.slice()),
+  sudoSolution: () => sudoSolution.map(r => r.slice()),
+  sudoGiven: () => sudoGiven.map(r => r.slice()),
+  sudoMistakes: () => sudoMistakes,
+  msGenerate, msReveal, msAdjacent, msCheckWin, msNew, msFlag, msTap,
+  msMines: () => msMines.map(r => r.slice()),
+  setMsMines: m => { msMines = m.map(r => r.slice()); msStarted = true; msLost = false; msWon = false; },
+  msRevealed: () => msRevealed.map(r => r.slice()),
+  msFlagged: () => msFlagged.map(r => r.slice()),
+  // Snake / 2048
+  snakeNew, snakeSetDir, snakeStep, snakeDie,
+  snake: () => snake.map(x => x.slice()), snakeScore: () => snakeScore, snakeDead: () => snakeDead,
+  c2048New, c2048Move, c2048Slide, c2048IsOver,
+  c2048Grid: () => c2048Grid.map(r => r.slice()), c2048Score: () => c2048Score,
 };
 
+/* ════════════════════════════════════════════════════════════════
+   遊戲選單 + 多遊戲系統（Queens / Sudoku / Minesweeper）
+   ════════════════════════════════════════════════════════════════ */
+let currentGame = null;   // 'queens' | 'sudoku' | 'minesweeper' | null（選單）
+
+function startGame(gameId) {
+  clearInterval(snakeTimer);   // 停止舊 snake loop
+  currentGame = gameId;
+  document.getElementById('menu').classList.add('hidden');
+  document.getElementById('board3d').classList.add('hidden');
+  document.getElementById('board-wrap').classList.remove('hidden');
+  hideOverlay();
+  if (gameId === 'queens') { newGame(); }
+  else if (gameId === 'sudoku') { sudokuNew(); }
+  else if (gameId === 'minesweeper') { msNew(); }
+  else if (gameId === 'snake') { snakeNew(); }
+  else if (gameId === 'c2048') { c2048New(); }
+  renderGameControls();
+}
+function backToMenu() {
+  clearInterval(snakeTimer);
+  currentGame = null;
+  stopTimer();
+  hideOverlay();
+  document.getElementById('menu').classList.remove('hidden');
+  document.getElementById('board-wrap').classList.add('hidden');
+  document.getElementById('board3d').classList.add('hidden');
+  document.getElementById('numpad').classList.add('hidden');
+}
+function renderGameControls() {
+  const q = currentGame === 'queens';
+  const s = currentGame === 'sudoku';
+  document.getElementById('undo').style.display = q ? '' : 'none';
+  document.getElementById('reset').style.display = '';
+  document.getElementById('numpad').classList.toggle('hidden', !s);
+  if (s) buildNumpad();
+}
+
+/* ── Sudoku 數獨 ── */
+const SUDO_N = 9;
+let sudoGrid = [], sudoSolution = [], sudoGiven = [], sudoSelected = null;
+let sudoMistakes = 0, sudoWrongCell = null, sudoWrongTimer = null;
+
+function sudoBoxOk(grid, r, c, val) {
+  const br = Math.floor(r / 3) * 3, bc = Math.floor(c / 3) * 3;
+  for (let i = 0; i < 9; i++) {
+    if (grid[r][i] === val && i !== c) return false;
+    if (grid[i][c] === val && i !== r) return false;
+    const rr = br + Math.floor(i / 3), cc = bc + (i % 3);
+    if (grid[rr][cc] === val && !(rr === r && cc === c)) return false;
+  }
+  return true;
+}
+function sudoSolve(grid) {
+  for (let r = 0; r < 9; r++) for (let c = 0; c < 9; c++) {
+    if (grid[r][c] === 0) {
+      const nums = shuffle([1, 2, 3, 4, 5, 6, 7, 8, 9]);
+      for (const v of nums) {
+        if (sudoBoxOk(grid, r, c, v)) {
+          grid[r][c] = v;
+          if (sudoSolve(grid)) return true;
+          grid[r][c] = 0;
+        }
+      }
+      return false;
+    }
+  }
+  return true;
+}
+function sudoCountSolutions(grid, limit) {
+  let count = 0;
+  (function rec() {
+    if (count >= limit) return;
+    for (let r = 0; r < 9 && count < limit; r++) for (let c = 0; c < 9 && count < limit; c++) {
+      if (grid[r][c] === 0) {
+        for (let v = 1; v <= 9; v++) {
+          if (sudoBoxOk(grid, r, c, v)) {
+            grid[r][c] = v; rec(); grid[r][c] = 0;
+            if (count >= limit) return;
+          }
+        }
+        return;
+      }
+    }
+    count++;
+  })();
+  return count;
+}
+function sudoGenerate(clues) {
+  const sol = Array.from({ length: 9 }, () => Array(9).fill(0));
+  sudoSolve(sol);
+  const grid = sol.map(r => r.slice());
+  const cells = shuffle([...Array(81).keys()]);
+  let removed = 0;
+  for (const idx of cells) {
+    if (81 - removed <= clues) break;
+    const r = Math.floor(idx / 9), c = idx % 9;
+    const backup = grid[r][c];
+    grid[r][c] = 0;
+    if (sudoCountSolutions(grid.map(x => x.slice()), 2) !== 1) grid[r][c] = backup;
+    else removed++;
+  }
+  return { grid, solution: sol };
+}
+function sudokuNew() {
+  const { grid, solution } = sudoGenerate(34);
+  sudoGrid = grid; sudoSolution = solution;
+  sudoGiven = grid.map(r => r.map(v => v !== 0));
+  sudoSelected = null; sudoMistakes = 0; sudoWrongCell = null;
+  started = false; seconds = 0; stopTimer();
+  document.getElementById('timer').textContent = '00:00';
+  renderSudoku();
+}
+function sudokuTap(r, c) {
+  if (sudoGiven[r][c]) { sudoSelected = [r, c]; renderSudoku(); return; }
+  sudoSelected = [r, c];
+  touch();
+  renderSudoku();
+}
+function sudokuInput(n) {
+  if (!sudoSelected) { toast('先撳一個格仔'); return; }
+  const [r, c] = sudoSelected;
+  if (sudoGiven[r][c]) { toast('呢格係題目，唔改得'); return; }
+  touch();
+  if (n === 0) {
+    if (sudoGrid[r][c] !== 0) { sudoGrid[r][c] = 0; renderSudoku(); }
+    return;
+  }
+  if (sudoGrid[r][c] === n) return;
+  if (n !== sudoSolution[r][c]) {
+    sudoMistakes++;
+    sudoWrongCell = [r, c];
+    sudoGrid[r][c] = n;   // 顯示錯誤值，閃紅
+    renderSudoku();
+    clearTimeout(sudoWrongTimer);
+    sudoWrongTimer = setTimeout(() => { sudoWrongCell = null; sudoGrid[r][c] = 0; renderSudoku(); }, 700);
+    return;
+  }
+  sudoGrid[r][c] = n;
+  renderSudoku();
+  if (sudoIsWon()) sudoWin();
+}
+function sudoIsWon() {
+  for (let r = 0; r < 9; r++) for (let c = 0; c < 9; c++) if (sudoGrid[r][c] !== sudoSolution[r][c]) return false;
+  return true;
+}
+function sudoWin() {
+  stopTimer();
+  score += 1000 - sudoMistakes * 100;
+  if (score > best) { best = score; localStorage.setItem('zooqueens-best', best); }
+  showOverlay('🎉', '數獨完成！', `錯咗 ${sudoMistakes} 次，用咗 ${document.getElementById('timer').textContent}。`,
+    [['🔢 再玩一局', sudokuNew, ''], ['🏠 選單', backToMenu, 'ghost']]);
+  celebrate();
+}
+function buildNumpad() {
+  const pad = document.getElementById('numpad');
+  pad.innerHTML = '';
+  for (let n = 1; n <= 9; n++) {
+    const b = document.createElement('button');
+    b.textContent = n;
+    b.addEventListener('click', () => sudokuInput(n));
+    pad.appendChild(b);
+  }
+  const e = document.createElement('button');
+  e.className = 'erase'; e.textContent = '⌫';
+  e.addEventListener('click', () => sudokuInput(0));
+  pad.appendChild(e);
+}
+function renderSudoku() {
+  const boardEl = document.getElementById('board');
+  boardEl.innerHTML = '';
+  boardEl.style.gridTemplateColumns = 'repeat(9, 1fr)';
+  boardEl.style.gridTemplateRows = 'repeat(9, 1fr)';
+  for (let r = 0; r < 9; r++) for (let c = 0; c < 9; c++) {
+    const cell = document.createElement('div');
+    cell.className = 'cell sudoku-cell';
+    cell.style.background = '#fff';
+    const thick = '2px solid #1f2430', thin = '1px solid #dde3ec';
+    cell.style.borderTop = r % 3 === 0 ? thick : thin;
+    cell.style.borderBottom = r % 3 === 2 ? thick : thin;
+    cell.style.borderLeft = c % 3 === 0 ? thick : thin;
+    cell.style.borderRight = c % 3 === 2 ? thick : thin;
+    const val = sudoGrid[r][c];
+    if (val) {
+      const span = document.createElement('span');
+      span.className = 'num'; span.textContent = val;
+      cell.appendChild(span);
+      if (sudoGiven[r][c]) cell.classList.add('given');
+      else cell.classList.add('filled');
+    }
+    if (sudoSelected && sudoSelected[0] === r && sudoSelected[1] === c) cell.classList.add('selected');
+    else if (sudoSelected && val && val === sudoGrid[sudoSelected[0]][sudoSelected[1]]) cell.classList.add('same-num');
+    if (sudoWrongCell && sudoWrongCell[0] === r && sudoWrongCell[1] === c) cell.classList.add('wrong');
+    cell.addEventListener('click', () => sudokuTap(r, c));
+    boardEl.appendChild(cell);
+  }
+  renderSudokuHUD();
+}
+function renderSudokuHUD() {
+  document.getElementById('level').textContent = 'Sudoku · 9×9';
+  document.getElementById('diff').textContent = 'Normal';
+  document.getElementById('diff').style.color = '#4a90d9';
+  document.getElementById('score').textContent = score;
+  document.getElementById('best').textContent = best;
+  document.getElementById('hearts').textContent = '⚠️ ' + sudoMistakes;
+  document.getElementById('hearts').style.display = '';
+}
+
+/* ── Minesweeper 踩地雷 ── */
+const MS_N = 9, MS_MINES = 10;
+let msMines = [], msRevealed = [], msFlagged = [], msStarted = false, msLost = false, msWon = false;
+
+function msGenerate(safeR, safeC) {
+  const mines = Array.from({ length: MS_N }, () => Array(MS_N).fill(false));
+  let placed = 0;
+  while (placed < MS_MINES) {
+    const r = Math.floor(Math.random() * MS_N), c = Math.floor(Math.random() * MS_N);
+    if (mines[r][c]) continue;
+    if (Math.abs(r - safeR) <= 1 && Math.abs(c - safeC) <= 1) continue;  // 首擊保證 0
+    mines[r][c] = true; placed++;
+  }
+  return mines;
+}
+function msAdjacent(r, c) {
+  let n = 0;
+  for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) {
+    if (!dr && !dc) continue;
+    const nr = r + dr, nc = c + dc;
+    if (nr >= 0 && nr < MS_N && nc >= 0 && nc < MS_N && msMines[nr][nc]) n++;
+  }
+  return n;
+}
+function msNew() {
+  msMines = Array.from({ length: MS_N }, () => Array(MS_N).fill(false));
+  msRevealed = Array.from({ length: MS_N }, () => Array(MS_N).fill(false));
+  msFlagged = Array.from({ length: MS_N }, () => Array(MS_N).fill(false));
+  msStarted = false; msLost = false; msWon = false;
+  started = false; seconds = 0; stopTimer();
+  document.getElementById('timer').textContent = '00:00';
+  renderMinesweeper();
+}
+function msTap(r, c) {
+  if (msLost || msWon) return;
+  if (msFlagged[r][c]) return;
+  if (!msStarted) { msMines = msGenerate(r, c); msStarted = true; }
+  touch();
+  msReveal(r, c);
+  renderMinesweeper();
+}
+function msFlag(r, c) {
+  if (msLost || msWon || msRevealed[r][c]) return;
+  msFlagged[r][c] = !msFlagged[r][c];
+  renderMinesweeper();
+}
+function msReveal(r, c) {
+  if (msRevealed[r][c] || msFlagged[r][c]) return;
+  msRevealed[r][c] = true;
+  if (msMines[r][c]) { msLost = true; return; }
+  if (msAdjacent(r, c) === 0) {
+    for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) {
+      if (!dr && !dc) continue;
+      const nr = r + dr, nc = c + dc;
+      if (nr >= 0 && nr < MS_N && nc >= 0 && nc < MS_N) msReveal(nr, nc);
+    }
+  }
+  if (msCheckWin()) msWon = true;
+}
+function msCheckWin() {
+  for (let r = 0; r < MS_N; r++) for (let c = 0; c < MS_N; c++)
+    if (!msMines[r][c] && !msRevealed[r][c]) return false;
+  return true;
+}
+function msWin() {
+  stopTimer();
+  score += 500;
+  if (score > best) { best = score; localStorage.setItem('zooqueens-best', best); }
+  showOverlay('🎉', '踩地雷成功！', `搵晒 ${MS_MINES} 個地雷，用咗 ${document.getElementById('timer').textContent}。`,
+    [['💣 再玩一局', msNew, ''], ['🏠 選單', backToMenu, 'ghost']]);
+  celebrate();
+}
+function msLose() {
+  stopTimer();
+  showOverlay('💥', '踩中地雷！', '唔好灰心，再試一次！', [['🔄 重試', msNew, '']]);
+}
+function renderMinesweeper() {
+  const boardEl = document.getElementById('board');
+  boardEl.innerHTML = '';
+  boardEl.style.gridTemplateColumns = `repeat(${MS_N}, 1fr)`;
+  boardEl.style.gridTemplateRows = `repeat(${MS_N}, 1fr)`;
+  for (let r = 0; r < MS_N; r++) for (let c = 0; c < MS_N; c++) {
+    const cell = document.createElement('div');
+    cell.className = 'cell ms-cell';
+    const revealed = msRevealed[r][c];
+    if (revealed) {
+      cell.classList.add('revealed');
+      if (msMines[r][c]) {
+        const span = document.createElement('span');
+        span.className = 'ms-mine'; span.textContent = '💣';
+        cell.appendChild(span);
+        if (msLost && msMines[r][c]) cell.classList.add('mine-hit');
+      } else {
+        const n = msAdjacent(r, c);
+        if (n > 0) {
+          const span = document.createElement('span');
+          span.className = 'num num-' + n; span.textContent = n;
+          cell.appendChild(span);
+        }
+      }
+    } else if (msFlagged[r][c]) {
+      const span = document.createElement('span');
+      span.className = 'ms-flag'; span.textContent = '🚩';
+      cell.appendChild(span);
+    }
+    if (msLost && msMines[r][c] && !revealed) {
+      // 揭曉所有未揭開嘅地雷
+      const span = document.createElement('span');
+      span.className = 'ms-mine'; span.textContent = '💣';
+      cell.appendChild(span);
+      cell.classList.add('revealed');
+    }
+    cell.addEventListener('click', () => msTap(r, c));
+    cell.addEventListener('contextmenu', (e) => { e.preventDefault(); msFlag(r, c); });
+    boardEl.appendChild(cell);
+  }
+  renderMinesweeperHUD();
+  if (msWon) msWin();
+  else if (msLost) msLose();
+}
+function renderMinesweeperHUD() {
+  let flags = 0;
+  for (const row of msFlagged) for (const v of row) if (v) flags++;
+  document.getElementById('level').textContent = 'Minesweeper · 9×9';
+  document.getElementById('diff').textContent = `💣 ${MS_MINES - flags} 剩`;
+  document.getElementById('diff').style.color = '#e5484d';
+  document.getElementById('score').textContent = score;
+  document.getElementById('best').textContent = best;
+  document.getElementById('hearts').textContent = '🚩 ' + flags;
+  document.getElementById('hearts').style.display = '';
+}
+
+/* ── Snake 貪食蛇 ── */
+const SNAKE_N = 15, SNAKE_SPEED = 140;
+let snake = [], snakeDir = [0, 1], snakeFood = [0, 0], snakeScore = 0, snakeBest = 0;
+let snakeTimer = null, snakeDead = false;
+
+function snakeNew() {
+  snake = [[Math.floor(SNAKE_N / 2), Math.floor(SNAKE_N / 2)]];
+  snakeDir = [0, 1];
+  snakeScore = 0; snakeDead = false;
+  snakeBest = +(localStorage.getItem('zooqueens-snake-best') || 0);
+  snakeSpawnFood();
+  started = false; seconds = 0; stopTimer();
+  document.getElementById('timer').textContent = '00:00';
+  renderSnake();
+  clearInterval(snakeTimer);
+  snakeTimer = setInterval(snakeStep, SNAKE_SPEED);
+  touch();
+}
+function snakeSpawnFood() {
+  let r, c;
+  do { r = Math.floor(Math.random() * SNAKE_N); c = Math.floor(Math.random() * SNAKE_N); }
+  while (snake.some(s => s[0] === r && s[1] === c));
+  snakeFood = [r, c];
+}
+function snakeStep() {
+  if (snakeDead) return;
+  const h = snake[0];
+  const nr = h[0] + snakeDir[0], nc = h[1] + snakeDir[1];
+  if (nr < 0 || nr >= SNAKE_N || nc < 0 || nc >= SNAKE_N) { snakeDie(); return; }
+  const willEat = nr === snakeFood[0] && nc === snakeFood[1];
+  const body = willEat ? snake : snake.slice(0, -1);
+  if (body.some(s => s[0] === nr && s[1] === nc)) { snakeDie(); return; }
+  snake.unshift([nr, nc]);
+  if (willEat) {
+    snakeScore += 10;
+    if (snakeScore > snakeBest) { snakeBest = snakeScore; localStorage.setItem('zooqueens-snake-best', snakeBest); }
+    snakeSpawnFood();
+  } else snake.pop();
+  renderSnake();
+}
+function snakeDie() {
+  snakeDead = true;
+  clearInterval(snakeTimer);
+  stopTimer();
+  score += snakeScore;
+  if (score > best) { best = score; localStorage.setItem('zooqueens-best', best); }
+  showOverlay('💀', '撞到嘢喇！', `食咗 ${snake.length} 格，得 ${snakeScore} 分。`,
+    [['🐍 再玩一次', snakeNew, ''], ['🏠 選單', backToMenu, 'ghost']]);
+}
+function snakeSetDir(dr, dc) {
+  if (dr === -snakeDir[0] && dc === -snakeDir[1]) return;  // 唔畀 180° 反轉
+  if (dr === snakeDir[0] && dc === snakeDir[1]) return;
+  snakeDir = [dr, dc];
+}
+function renderSnake() {
+  const boardEl = document.getElementById('board');
+  boardEl.innerHTML = '';
+  boardEl.style.gridTemplateColumns = `repeat(${SNAKE_N}, 1fr)`;
+  boardEl.style.gridTemplateRows = `repeat(${SNAKE_N}, 1fr)`;
+  for (let r = 0; r < SNAKE_N; r++) for (let c = 0; c < SNAKE_N; c++) {
+    const cell = document.createElement('div');
+    cell.className = 'cell snake-cell';
+    if (snake[0][0] === r && snake[0][1] === c) cell.classList.add('head');
+    else if (snake.some((s, i) => i > 0 && s[0] === r && s[1] === c)) cell.classList.add('body');
+    if (snakeFood[0] === r && snakeFood[1] === c) {
+      cell.classList.add('food');
+      const span = document.createElement('span');
+      span.className = 'snake-food'; span.textContent = '🍎';
+      cell.appendChild(span);
+    }
+    boardEl.appendChild(cell);
+  }
+  renderSnakeHUD();
+}
+function renderSnakeHUD() {
+  document.getElementById('level').textContent = 'Snake · ' + SNAKE_N + '×' + SNAKE_N;
+  document.getElementById('diff').textContent = '🍎 ' + snake.length;
+  document.getElementById('diff').style.color = '#4caf50';
+  document.getElementById('score').textContent = score;
+  document.getElementById('best').textContent = Math.max(best, snakeBest);
+  document.getElementById('hearts').textContent = '🐍 ' + snakeScore;
+  document.getElementById('hearts').style.display = '';
+}
+
+/* ── 2048 數字合併 ── */
+const C2048_N = 4;
+let c2048Grid = [], c2048Score = 0, c2048Best = 0, c2048Over = false, c2048Won = false;
+
+function c2048New() {
+  c2048Grid = Array.from({ length: C2048_N }, () => Array(C2048_N).fill(0));
+  c2048Score = 0; c2048Over = false; c2048Won = false;
+  c2048Best = +(localStorage.getItem('zooqueens-2048-best') || 0);
+  c2048Spawn(); c2048Spawn();
+  started = false; seconds = 0; stopTimer();
+  document.getElementById('timer').textContent = '00:00';
+  renderC2048();
+}
+function c2048Spawn() {
+  const empties = [];
+  for (let r = 0; r < C2048_N; r++) for (let c = 0; c < C2048_N; c++) if (c2048Grid[r][c] === 0) empties.push([r, c]);
+  if (!empties.length) return;
+  const [r, c] = empties[Math.floor(Math.random() * empties.length)];
+  c2048Grid[r][c] = Math.random() < 0.9 ? 2 : 4;
+}
+function c2048Slide(row) {
+  const tiles = row.filter(v => v !== 0);
+  const merged = [];
+  let gain = 0;
+  for (let i = 0; i < tiles.length; i++) {
+    if (i + 1 < tiles.length && tiles[i] === tiles[i + 1]) {
+      const v = tiles[i] * 2;
+      merged.push(v); gain += v; i++;
+      if (v === 2048) c2048Won = true;
+    } else merged.push(tiles[i]);
+  }
+  while (merged.length < C2048_N) merged.push(0);
+  return { row: merged, scoreGain: gain };
+}
+function c2048Move(dir) {
+  if (c2048Over) return;
+  touch();
+  const before = JSON.stringify(c2048Grid);
+  let gain = 0;
+  for (let i = 0; i < C2048_N; i++) {
+    let line = [];
+    for (let j = 0; j < C2048_N; j++) {
+      if (dir === 'left') line.push(c2048Grid[i][j]);
+      else if (dir === 'right') line.push(c2048Grid[i][C2048_N - 1 - j]);
+      else if (dir === 'up') line.push(c2048Grid[j][i]);
+      else line.push(c2048Grid[C2048_N - 1 - j][i]);
+    }
+    const { row, scoreGain } = c2048Slide(line);
+    gain += scoreGain;
+    for (let j = 0; j < C2048_N; j++) {
+      if (dir === 'left') c2048Grid[i][j] = row[j];
+      else if (dir === 'right') c2048Grid[i][C2048_N - 1 - j] = row[j];
+      else if (dir === 'up') c2048Grid[j][i] = row[j];
+      else c2048Grid[C2048_N - 1 - j][i] = row[j];
+    }
+  }
+  c2048Score += gain;
+  if (c2048Score > c2048Best) { c2048Best = c2048Score; localStorage.setItem('zooqueens-2048-best', c2048Best); }
+  if (JSON.stringify(c2048Grid) !== before) c2048Spawn();
+  renderC2048();
+  if (c2048Won) { c2048Won = false; toast('🎉 合到 2048！繼續挑戰更高分！'); }
+  if (c2048IsOver()) { c2048Over = true; stopTimer(); c2048Lose(); }
+}
+function c2048IsOver() {
+  for (let r = 0; r < C2048_N; r++) for (let c = 0; c < C2048_N; c++) if (c2048Grid[r][c] === 0) return false;
+  for (let r = 0; r < C2048_N; r++) for (let c = 0; c < C2048_N; c++) {
+    if (c + 1 < C2048_N && c2048Grid[r][c] === c2048Grid[r][c + 1]) return false;
+    if (r + 1 < C2048_N && c2048Grid[r][c] === c2048Grid[r + 1][c]) return false;
+  }
+  return true;
+}
+function c2048Lose() {
+  score += c2048Score;
+  if (score > best) { best = score; localStorage.setItem('zooqueens-best', best); }
+  showOverlay('😵', '冇位郁喇！', `得 ${c2048Score} 分。`, [['🎲 再玩一次', c2048New, ''], ['🏠 選單', backToMenu, 'ghost']]);
+}
+function renderC2048() {
+  const boardEl = document.getElementById('board');
+  boardEl.innerHTML = '';
+  boardEl.style.gridTemplateColumns = `repeat(${C2048_N}, 1fr)`;
+  boardEl.style.gridTemplateRows = `repeat(${C2048_N}, 1fr)`;
+  for (let r = 0; r < C2048_N; r++) for (let c = 0; c < C2048_N; c++) {
+    const cell = document.createElement('div');
+    cell.className = 'cell c2048-cell';
+    const v = c2048Grid[r][c];
+    if (v) {
+      const tile = document.createElement('div');
+      tile.className = 'c2048-tile ' + (v <= 2048 ? 'tile-' + v : 'tile-super');
+      tile.textContent = v;
+      cell.appendChild(tile);
+    }
+    boardEl.appendChild(cell);
+  }
+  renderC2048HUD();
+}
+function renderC2048HUD() {
+  document.getElementById('level').textContent = '2048 · 4×4';
+  document.getElementById('diff').textContent = '合併數字';
+  document.getElementById('diff').style.color = '#f5a623';
+  document.getElementById('score').textContent = score;
+  document.getElementById('best').textContent = Math.max(best, c2048Best);
+  document.getElementById('hearts').textContent = '🔢 ' + c2048Score;
+  document.getElementById('hearts').style.display = '';
+}
+
+/* ── 鍵盤 / 滑動輸入（Snake + 2048）── */
+document.addEventListener('keydown', (e) => {
+  if (currentGame === 'snake') {
+    if (e.key === 'ArrowUp') { e.preventDefault(); snakeSetDir(-1, 0); }
+    else if (e.key === 'ArrowDown') { e.preventDefault(); snakeSetDir(1, 0); }
+    else if (e.key === 'ArrowLeft') { e.preventDefault(); snakeSetDir(0, -1); }
+    else if (e.key === 'ArrowRight') { e.preventDefault(); snakeSetDir(0, 1); }
+  } else if (currentGame === 'c2048') {
+    if (e.key === 'ArrowUp') { e.preventDefault(); c2048Move('up'); }
+    else if (e.key === 'ArrowDown') { e.preventDefault(); c2048Move('down'); }
+    else if (e.key === 'ArrowLeft') { e.preventDefault(); c2048Move('left'); }
+    else if (e.key === 'ArrowRight') { e.preventDefault(); c2048Move('right'); }
+  }
+});
+let touchSX = 0, touchSY = 0;
+document.addEventListener('touchstart', (e) => {
+  if (e.touches.length) { touchSX = e.touches[0].clientX; touchSY = e.touches[0].clientY; }
+}, { passive: true });
+document.addEventListener('touchend', (e) => {
+  if (!e.changedTouches.length) return;
+  const dx = e.changedTouches[0].clientX - touchSX;
+  const dy = e.changedTouches[0].clientY - touchSY;
+  if (Math.abs(dx) < 24 && Math.abs(dy) < 24) return;
+  const horiz = Math.abs(dx) > Math.abs(dy);
+  if (currentGame === 'snake') {
+    if (horiz) snakeSetDir(0, dx > 0 ? 1 : -1);
+    else snakeSetDir(dy > 0 ? 1 : -1, 0);
+  } else if (currentGame === 'c2048') {
+    if (horiz) c2048Move(dx > 0 ? 'right' : 'left');
+    else c2048Move(dy > 0 ? 'down' : 'up');
+  }
+}, { passive: true });
+
+// ── 選單 / 按鈕綁定 ──
+document.getElementById('menuBtn').addEventListener('click', backToMenu);
+document.querySelectorAll('.menu-card').forEach(card => {
+  card.addEventListener('click', () => startGame(card.dataset.game));
+});
+
 // ── 啟動 ──
-// URL 跳關：`?level=25` 或 `#25` 直接開指定關卡（例如跳去 3D cube 試玩）
-// 困難模式：`?hard=1` 開 cube 跨面相鄰
+// URL 跳關：`?level=21` 或 `#21` 直接開指定關卡（例如跳去 3D 模式試玩）
 function urlStartLevel() {
   try {
     const q = new URLSearchParams(location.search).get('level');
@@ -1414,18 +1726,16 @@ function urlStartLevel() {
   } catch (e) {}
   return null;
 }
-function urlHardMode() {
-  try {
-    const q = new URLSearchParams(location.search).get('hard');
-    if (q === '1' || q === 'true') return true;
-  } catch (e) {}
-  return false;
-}
 (function boot() {
-  hardMode = urlHardMode();
   const lv = urlStartLevel();
-  if (lv) { score = 0; loadLevel(lv); }
-  else newGame();
+  let g = null;
+  try { g = new URLSearchParams(location.search).get('game'); } catch (e) {}
+  if (g === 'sudoku') startGame('sudoku');
+  else if (g === 'minesweeper') startGame('minesweeper');
+  else if (g === 'snake') startGame('snake');
+  else if (g === 'c2048') startGame('c2048');
+  else if (lv) { startGame('queens'); loadLevel(lv); }
+  // 否則顯示選單（menu 預設 visible）
 })();
 </script>
 </body>
