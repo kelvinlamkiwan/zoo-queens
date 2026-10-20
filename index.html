@@ -220,6 +220,31 @@
   .tile-1024 { background: #edc53f; color: #fff; }
   .tile-2048 { background: #edc22e; color: #fff; }
   .tile-super { background: #3c3a32; color: #fff; }
+
+  /* ── Block Blast 方塊 ── */
+  .bb-cell { background: #f0f2f7 !important; border: 1px solid #e2e6ee !important; }
+  .bb-cell.filled { background: #4a90d9 !important; border-color: #4a90d9 !important; }
+  .bb-cell.clearing { animation: shake .3s; background: #f5a623 !important; }
+  .bb-tray { display: flex; gap: 14px; justify-content: center; margin-top: 14px; flex-wrap: wrap; min-height: 56px; }
+  .bb-block { display: grid; gap: 2px; cursor: pointer; padding: 7px; border-radius: 10px; background: #fff; box-shadow: 0 2px 8px rgba(0,0,0,.08); transition: transform .12s; }
+  .bb-block:active { transform: scale(.94); }
+  .bb-block.selected { outline: 3px solid var(--accent); outline-offset: 2px; }
+  .bb-block.disabled { opacity: .35; pointer-events: none; }
+  .bb-cell2 { width: 21px; height: 21px; border-radius: 4px; background: #d5dae3; }
+  .bb-cell2.on { background: #4a90d9; }
+
+  /* ── Memory Match 翻牌 ── */
+  .mem-cell { background: linear-gradient(135deg, #4a90d9, #2f6fb8) !important; cursor: pointer; }
+  .mem-cell.flipped, .mem-cell.matched { background: #fff !important; cursor: default; }
+  .mem-cell.matched { background: #d7f0d8 !important; }
+  .mem-card { font-size: clamp(18px, 5.4vw, 30px); }
+
+  /* ── Tic-Tac-Toe 井字棋 ── */
+  .ttt-cell { background: #fff !important; border: 2px solid #d0d6e0 !important; }
+  .ttt-cell .ttt-mark { font-size: clamp(26px, 8vw, 46px); font-weight: 800; line-height: 1; }
+  .ttt-cell.x .ttt-mark { color: #4a90d9; }
+  .ttt-cell.o .ttt-mark { color: #e5484d; }
+  .ttt-cell.win { background: #fff3c4 !important; }
 </style>
 </head>
 <body>
@@ -252,6 +277,21 @@
         <span class="m-emoji">🎲</span>
         <div class="m-name">2048</div>
         <div class="m-desc">合併相同數字，衝上 2048</div>
+      </button>
+      <button class="menu-card" data-game="blockblast">
+        <span class="m-emoji">🧱</span>
+        <div class="m-name">Block Blast 方塊</div>
+        <div class="m-desc">放方塊填滿行列，消除得分</div>
+      </button>
+      <button class="menu-card" data-game="memory">
+        <span class="m-emoji">🧠</span>
+        <div class="m-name">Memory 翻牌</div>
+        <div class="m-desc">記住位置，配對相同圖案</div>
+      </button>
+      <button class="menu-card" data-game="tictactoe">
+        <span class="m-emoji">⭕</span>
+        <div class="m-name">井字棋</div>
+        <div class="m-desc">3 連一線，同 AI 對戰</div>
       </button>
     </div>
   </div>
@@ -317,6 +357,7 @@
   </div>
 
   <div class="numpad hidden" id="numpad"></div>
+  <div class="bb-tray hidden" id="blockTray"></div>
 
   <div class="donate">
     <div class="d-title">☕ 鍾意 Zoo Queens？</div>
@@ -1111,6 +1152,9 @@ document.getElementById('reset').addEventListener('click', () => {
   else if (currentGame === 'minesweeper') msNew();
   else if (currentGame === 'snake') snakeNew();
   else if (currentGame === 'c2048') c2048New();
+  else if (currentGame === 'blockblast') bbNew();
+  else if (currentGame === 'memory') memNew();
+  else if (currentGame === 'tictactoe') tttNew();
   else resetLevel();
 });
 
@@ -1145,6 +1189,11 @@ globalThis.__zooqueens = {
   snake: () => snake.map(x => x.slice()), snakeScore: () => snakeScore, snakeDead: () => snakeDead,
   c2048New, c2048Move, c2048Slide, c2048IsOver,
   c2048Grid: () => c2048Grid.map(r => r.slice()), c2048Score: () => c2048Score,
+  // Block Blast / Memory / Tic-Tac-Toe
+  bbNew, bbCanPlace, bbTapCell, bbClearLines, bbIsOver,
+  bbGrid: () => bbGrid.map(r => r.slice()), bbBlocks: () => bbBlocks.map(b => b ? b.slice() : null), bbScore: () => bbScore, bbSelected: () => bbSelected,
+  memNew, memTap, memCards: () => memCards.slice(), memMatched: () => memMatched.slice(),
+  tttNew, tttTap, tttBestMove, tttWinner, tttBoard: () => tttBoard.slice(),
 };
 
 /* ════════════════════════════════════════════════════════════════
@@ -1164,6 +1213,9 @@ function startGame(gameId) {
   else if (gameId === 'minesweeper') { msNew(); }
   else if (gameId === 'snake') { snakeNew(); }
   else if (gameId === 'c2048') { c2048New(); }
+  else if (gameId === 'blockblast') { bbNew(); }
+  else if (gameId === 'memory') { memNew(); }
+  else if (gameId === 'tictactoe') { tttNew(); }
   renderGameControls();
 }
 function backToMenu() {
@@ -1175,13 +1227,16 @@ function backToMenu() {
   document.getElementById('board-wrap').classList.add('hidden');
   document.getElementById('board3d').classList.add('hidden');
   document.getElementById('numpad').classList.add('hidden');
+  document.getElementById('blockTray').classList.add('hidden');
 }
 function renderGameControls() {
   const q = currentGame === 'queens';
   const s = currentGame === 'sudoku';
+  const bb = currentGame === 'blockblast';
   document.getElementById('undo').style.display = q ? '' : 'none';
   document.getElementById('reset').style.display = '';
   document.getElementById('numpad').classList.toggle('hidden', !s);
+  document.getElementById('blockTray').classList.toggle('hidden', !bb);
   if (s) buildNumpad();
 }
 
@@ -1709,6 +1764,298 @@ document.addEventListener('touchend', (e) => {
   }
 }, { passive: true });
 
+/* ── Block Blast 方塊 ── */
+const BB_N = 8;
+const BLOCK_SHAPES = [
+  [[0,0]], [[0,0],[0,1]], [[0,0],[1,0]],
+  [[0,0],[0,1],[0,2]], [[0,0],[1,0],[2,0]],
+  [[0,0],[0,1],[1,0],[1,1]],
+  [[0,0],[1,0],[1,1]], [[0,1],[1,0],[1,1]],
+  [[0,0],[0,1],[1,0]], [[0,0],[0,1],[1,1]],
+  [[0,0],[0,1],[0,2],[0,3]], [[0,0],[1,0],[2,0],[3,0]],
+];
+let bbGrid = [], bbBlocks = [], bbSelected = null, bbScore = 0, bbBest = 0, bbOver = false;
+
+function bbNew() {
+  bbGrid = Array.from({ length: BB_N }, () => Array(BB_N).fill(0));
+  bbScore = 0; bbOver = false; bbSelected = null;
+  bbBest = +(localStorage.getItem('zooqueens-bb-best') || 0);
+  bbBlocks = [0, 1, 2].map(() => BLOCK_SHAPES[Math.floor(Math.random() * BLOCK_SHAPES.length)]);
+  started = false; seconds = 0; stopTimer();
+  document.getElementById('timer').textContent = '00:00';
+  renderBlockBlast();
+}
+function bbCanPlace(shape, r, c) {
+  for (const [dr, dc] of shape) {
+    const nr = r + dr, nc = c + dc;
+    if (nr < 0 || nr >= BB_N || nc < 0 || nc >= BB_N) return false;
+    if (bbGrid[nr][nc]) return false;
+  }
+  return true;
+}
+function bbTapCell(r, c) {
+  if (bbOver) return;
+  if (bbSelected === null) { toast('先揀下面一個方塊'); return; }
+  const shape = bbBlocks[bbSelected];
+  if (!bbCanPlace(shape, r, c)) { toast('呢度放唔落'); return; }
+  touch();
+  for (const [dr, dc] of shape) bbGrid[r + dr][c + dc] = 1;
+  bbScore += shape.length;
+  bbClearLines();
+  bbBlocks[bbSelected] = null;
+  bbSelected = null;
+  if (bbBlocks.every(b => b === null)) bbBlocks = [0, 1, 2].map(() => BLOCK_SHAPES[Math.floor(Math.random() * BLOCK_SHAPES.length)]);
+  renderBlockBlast();
+  if (bbIsOver()) { bbOver = true; stopTimer(); bbLose(); }
+}
+function bbClearLines() {
+  const rows = [], cols = [];
+  for (let r = 0; r < BB_N; r++) if (bbGrid[r].every(v => v)) rows.push(r);
+  for (let c = 0; c < BB_N; c++) if (bbGrid.every(row => row[c])) cols.push(c);
+  const cleared = rows.length + cols.length;
+  if (cleared) {
+    for (const r of rows) for (let c = 0; c < BB_N; c++) bbGrid[r][c] = 0;
+    for (const c of cols) for (let r = 0; r < BB_N; r++) bbGrid[r][c] = 0;
+    bbScore += cleared * 10;
+    if (bbScore > bbBest) { bbBest = bbScore; localStorage.setItem('zooqueens-bb-best', bbBest); }
+  }
+  return cleared;
+}
+function bbIsOver() {
+  for (const shape of bbBlocks) {
+    if (!shape) continue;
+    for (let r = 0; r < BB_N; r++) for (let c = 0; c < BB_N; c++) if (bbCanPlace(shape, r, c)) return false;
+  }
+  return true;
+}
+function bbLose() {
+  score += bbScore;
+  if (score > best) { best = score; localStorage.setItem('zooqueens-best', best); }
+  showOverlay('🧱', '冇位放喇！', `得 ${bbScore} 分。`, [['🧱 再玩一次', bbNew, ''], ['🏠 選單', backToMenu, 'ghost']]);
+}
+function renderBlockBlast() {
+  const boardEl = document.getElementById('board');
+  boardEl.innerHTML = '';
+  boardEl.style.gridTemplateColumns = `repeat(${BB_N}, 1fr)`;
+  boardEl.style.gridTemplateRows = `repeat(${BB_N}, 1fr)`;
+  for (let r = 0; r < BB_N; r++) for (let c = 0; c < BB_N; c++) {
+    const cell = document.createElement('div');
+    cell.className = 'cell bb-cell';
+    if (bbGrid[r][c]) cell.classList.add('filled');
+    cell.addEventListener('click', () => bbTapCell(r, c));
+    boardEl.appendChild(cell);
+  }
+  renderBlockTray();
+  renderBlockBlastHUD();
+}
+function renderBlockTray() {
+  const tray = document.getElementById('blockTray');
+  tray.innerHTML = '';
+  tray.classList.remove('hidden');
+  bbBlocks.forEach((shape, i) => {
+    const block = document.createElement('div');
+    block.className = 'bb-block';
+    if (bbSelected === i) block.classList.add('selected');
+    if (shape === null) { block.classList.add('disabled'); tray.appendChild(block); return; }
+    const rs = shape.map(s => s[0]), cs = shape.map(s => s[1]);
+    const minR = Math.min(...rs), maxR = Math.max(...rs), minC = Math.min(...cs), maxC = Math.max(...cs);
+    block.style.gridTemplateColumns = `repeat(${maxC - minC + 1}, 1fr)`;
+    for (let r = minR; r <= maxR; r++) for (let c = minC; c <= maxC; c++) {
+      const cell = document.createElement('div');
+      cell.className = 'bb-cell2' + (shape.some(s => s[0] === r && s[1] === c) ? ' on' : '');
+      block.appendChild(cell);
+    }
+    block.addEventListener('click', () => { bbSelected = (bbSelected === i ? null : i); renderBlockTray(); });
+    tray.appendChild(block);
+  });
+}
+function renderBlockBlastHUD() {
+  document.getElementById('level').textContent = 'Block Blast · 8×8';
+  document.getElementById('diff').textContent = '🧱 ' + bbScore;
+  document.getElementById('diff').style.color = '#4a90d9';
+  document.getElementById('score').textContent = score;
+  document.getElementById('best').textContent = Math.max(best, bbBest);
+  document.getElementById('hearts').textContent = '🎯 ' + bbScore;
+  document.getElementById('hearts').style.display = '';
+}
+
+/* ── Memory Match 翻牌 ── */
+const MEM_EMOJIS = ['🦁','🐯','🐘','🦓','🐼','🦊','🐸','🐷'];
+let memCards = [], memFlipped = [], memMatched = [], memLock = false, memFirst = null, memMoves = 0;
+
+function memNew() {
+  const emojis = shuffle(MEM_EMOJIS.slice()).slice(0, 8);
+  memCards = shuffle([...emojis, ...emojis]);
+  memFlipped = new Array(16).fill(false);
+  memMatched = new Array(16).fill(false);
+  memLock = false; memFirst = null; memMoves = 0;
+  started = false; seconds = 0; stopTimer();
+  document.getElementById('timer').textContent = '00:00';
+  renderMemory();
+}
+function memTap(i) {
+  if (memLock || memFlipped[i] || memMatched[i]) return;
+  touch();
+  memFlipped[i] = true;
+  renderMemory();
+  if (memFirst === null) {
+    memFirst = i;
+  } else {
+    memMoves++;
+    memLock = true;
+    if (memCards[memFirst] === memCards[i]) {
+      memMatched[memFirst] = true; memMatched[i] = true;
+      memFirst = null; memLock = false;
+      renderMemory();
+      if (memMatched.every(v => v)) memWin();
+    } else {
+      const a = memFirst, b = i;
+      setTimeout(() => {
+        memFlipped[a] = false; memFlipped[b] = false;
+        memFirst = null; memLock = false;
+        renderMemory();
+      }, 700);
+    }
+  }
+}
+function memWin() {
+  stopTimer();
+  score += Math.max(0, 500 - memMoves * 20);
+  if (score > best) { best = score; localStorage.setItem('zooqueens-best', best); }
+  showOverlay('🎉', '全部配對晒！', `用咗 ${memMoves} 次，${document.getElementById('timer').textContent}。`,
+    [['🧠 再玩一次', memNew, ''], ['🏠 選單', backToMenu, 'ghost']]);
+  celebrate();
+}
+function renderMemory() {
+  const boardEl = document.getElementById('board');
+  boardEl.innerHTML = '';
+  boardEl.style.gridTemplateColumns = 'repeat(4, 1fr)';
+  boardEl.style.gridTemplateRows = 'repeat(4, 1fr)';
+  for (let i = 0; i < 16; i++) {
+    const cell = document.createElement('div');
+    cell.className = 'cell mem-cell';
+    if (memFlipped[i] || memMatched[i]) {
+      cell.classList.add('flipped');
+      const span = document.createElement('span');
+      span.className = 'mem-card'; span.textContent = memCards[i];
+      cell.appendChild(span);
+    }
+    if (memMatched[i]) cell.classList.add('matched');
+    cell.addEventListener('click', () => memTap(i));
+    boardEl.appendChild(cell);
+  }
+  renderMemoryHUD();
+}
+function renderMemoryHUD() {
+  document.getElementById('level').textContent = 'Memory · 4×4';
+  document.getElementById('diff').textContent = '配對';
+  document.getElementById('diff').style.color = '#9b59b6';
+  document.getElementById('score').textContent = score;
+  document.getElementById('best').textContent = best;
+  document.getElementById('hearts').textContent = '🔄 ' + memMoves;
+  document.getElementById('hearts').style.display = '';
+}
+
+/* ── Tic-Tac-Toe 井字棋 ── */
+let tttBoard = [], tttOver = false, tttWinLine = null;
+
+function tttNew() {
+  tttBoard = Array(9).fill(null);
+  tttOver = false; tttWinLine = null;
+  started = false; seconds = 0; stopTimer();
+  document.getElementById('timer').textContent = '00:00';
+  renderTtt();
+}
+function tttWinner(b) {
+  const lines = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+  for (const [a, c, d] of lines) if (b[a] && b[a] === b[c] && b[a] === b[d]) return { w: b[a], line: [a, c, d] };
+  return null;
+}
+function tttTap(i) {
+  if (tttOver || tttBoard[i]) return;
+  touch();
+  tttBoard[i] = 'X';
+  renderTtt();
+  let res = tttWinner(tttBoard);
+  if (res) { tttEnd(res); return; }
+  if (tttBoard.every(v => v)) { tttEnd(null); return; }
+  setTimeout(() => {
+    if (tttOver) return;
+    const ai = tttBestMove();
+    tttBoard[ai] = 'O';
+    renderTtt();
+    res = tttWinner(tttBoard);
+    if (res) tttEnd(res);
+    else if (tttBoard.every(v => v)) tttEnd(null);
+  }, 250);
+}
+function tttBestMove() {
+  function minimax(b, isO, depth) {
+    const r = tttWinner(b);
+    if (r) return r.w === 'O' ? 10 - depth : depth - 10;
+    if (b.every(v => v)) return 0;
+    const mark = isO ? 'O' : 'X';
+    let best = isO ? -Infinity : Infinity;
+    for (let i = 0; i < 9; i++) if (!b[i]) {
+      b[i] = mark;
+      const v = minimax(b, !isO, depth + 1);
+      b[i] = null;
+      if (isO) best = Math.max(best, v); else best = Math.min(best, v);
+    }
+    return best;
+  }
+  let bestMove = -1, bestScore = -Infinity;
+  for (let i = 0; i < 9; i++) if (!tttBoard[i]) {
+    tttBoard[i] = 'O';
+    const v = minimax(tttBoard, false, 0);
+    tttBoard[i] = null;
+    if (v > bestScore) { bestScore = v; bestMove = i; }
+  }
+  return bestMove;
+}
+function tttEnd(res) {
+  tttOver = true; tttWinLine = res ? res.line : null;
+  renderTtt();
+  stopTimer();
+  if (!res) showOverlay('🤝', '和棋', '勢均力敵！', [['🔄 再玩一次', tttNew, '']]);
+  else if (res.w === 'X') {
+    score += 100;
+    if (score > best) { best = score; localStorage.setItem('zooqueens-best', best); }
+    showOverlay('🎉', '你贏咗！', '叻！打贏咗 AI。', [['⭕ 再玩一次', tttNew, ''], ['🏠 選單', backToMenu, 'ghost']]);
+  } else {
+    showOverlay('😅', 'AI 贏咗', '再試一次，加油！', [['🔄 重試', tttNew, '']]);
+  }
+}
+function renderTtt() {
+  const boardEl = document.getElementById('board');
+  boardEl.innerHTML = '';
+  boardEl.style.gridTemplateColumns = 'repeat(3, 1fr)';
+  boardEl.style.gridTemplateRows = 'repeat(3, 1fr)';
+  for (let i = 0; i < 9; i++) {
+    const cell = document.createElement('div');
+    cell.className = 'cell ttt-cell';
+    if (tttBoard[i]) {
+      cell.classList.add(tttBoard[i] === 'X' ? 'x' : 'o');
+      const span = document.createElement('span');
+      span.className = 'ttt-mark'; span.textContent = tttBoard[i];
+      cell.appendChild(span);
+    }
+    if (tttWinLine && tttWinLine.includes(i)) cell.classList.add('win');
+    cell.addEventListener('click', () => tttTap(i));
+    boardEl.appendChild(cell);
+  }
+  renderTttHUD();
+}
+function renderTttHUD() {
+  document.getElementById('level').textContent = '井字棋 · 3×3';
+  document.getElementById('diff').textContent = '你 X · AI O';
+  document.getElementById('diff').style.color = '#4a90d9';
+  document.getElementById('score').textContent = score;
+  document.getElementById('best').textContent = best;
+  document.getElementById('hearts').textContent = '⭕ vs ❌';
+  document.getElementById('hearts').style.display = '';
+}
+
 // ── 選單 / 按鈕綁定 ──
 document.getElementById('menuBtn').addEventListener('click', backToMenu);
 document.querySelectorAll('.menu-card').forEach(card => {
@@ -1734,6 +2081,9 @@ function urlStartLevel() {
   else if (g === 'minesweeper') startGame('minesweeper');
   else if (g === 'snake') startGame('snake');
   else if (g === 'c2048') startGame('c2048');
+  else if (g === 'blockblast') startGame('blockblast');
+  else if (g === 'memory') startGame('memory');
+  else if (g === 'tictactoe') startGame('tictactoe');
   else if (lv) { startGame('queens'); loadLevel(lv); }
   // 否則顯示選單（menu 預設 visible）
 })();
