@@ -15,8 +15,11 @@
 | 💣 **Minesweeper 踩地雷** | 揭開所有非地雷格，右鍵標旗（首擊保證安全） |
 | 🐍 **Snake 貪食蛇** | 食蘋果長大，方向鍵/滑動控制，唔好撞牆撞自己 |
 | 🎲 **2048** | 方向鍵/滑動合併相同數字，衝上 2048 |
+| 🧱 **Block Blast 方塊** | 放方塊填滿行列，消除得分 |
+| 🧠 **Memory 翻牌** | 記住位置，配對相同圖案 |
+| ⭕ **井字棋** | 3 連一線，同 AI 對戰（minimax 不敗） |
 
-- 直接開指定遊戲：`index.html?game=sudoku`、`?game=minesweeper`、`?game=snake`、`?game=c2048`
+- 直接開指定遊戲：`index.html?game=sudoku`、`?game=minesweeper`、`?game=snake`、`?game=c2048`、`?game=blockblast`、`?game=memory`、`?game=tictactoe`
 - 遊戲中撳「🏠 選單」返去選單
 
 ## 玩法
