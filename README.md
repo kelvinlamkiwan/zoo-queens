@@ -18,8 +18,9 @@
 | 🧱 **Block Blast 方塊** | 放方塊填滿行列，消除得分 |
 | 🧠 **Memory 翻牌** | 記住位置，配對相同圖案 |
 | ⭕ **井字棋** | 3 連一線，同 AI 對戰（minimax 不敗） |
+| 📐 **Shikaku 四角** | 按數字分割成矩形，每個矩形一個數（面積=數字） |
 
-- 直接開指定遊戲：`index.html?game=sudoku`、`?game=minesweeper`、`?game=snake`、`?game=c2048`、`?game=blockblast`、`?game=memory`、`?game=tictactoe`
+- 直接開指定遊戲：`index.html?game=sudoku`、`?game=minesweeper`、`?game=snake`、`?game=c2048`、`?game=blockblast`、`?game=memory`、`?game=tictactoe`、`?game=shikaku`
 - 遊戲中撳「🏠 選單」返去選單
 
 ## 玩法
